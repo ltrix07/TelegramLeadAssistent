@@ -1,0 +1,21 @@
+services:
+  postgres:
+    restart: unless-stopped
+
+  libretranslate:
+    restart: unless-stopped
+
+  telegram-listener:
+    restart: unless-stopped
+
+  classification-worker:
+    restart: unless-stopped
+
+  operator-bot:
+    restart: unless-stopped
+
+  translation-manager:
+    restart: unless-stopped
+
+  maintenance-worker:
+    restart: unless-stopped

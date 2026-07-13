@@ -1,0 +1,89 @@
+# Implementation Progress
+
+## Current state
+
+- Current milestone: M8
+- Current task: M8-06
+- Last completed task: M8-05
+- Last review status: M8-05 acceptance passed
+- Production outbound replies: disabled
+
+## Milestone status
+
+| Milestone | Status |
+|---|---|
+| M1 Project foundation | Complete |
+| M2 MTProto and chat management | Complete |
+| M3 Ingestion and queue | Complete |
+| M4 API classification | Complete |
+| M5 Reply context | Complete |
+| M6 Local translation | Complete |
+| M7 Operator workflow | Complete |
+| M8 MTProto send/edit | In progress |
+| M9 Operations | Not started |
+| M10 Rollout | Not started |
+
+## Last completed work
+
+M8-05 — The operator menu lists normalized outbound failures with open-original and, when a sent
+message ID exists, open-answer controls. Repository-enforced retry is available only for an
+idempotent failed edit with a normalized temporary error. Pending `FLOOD_WAIT`, permanent failures,
+and every `needs_review` result remain fail-closed even when a callback is replayed or forged.
+
+## Known blockers
+
+None.
+
+## Verification history
+
+| Date | Task/Milestone | Commands | Result |
+|---|---|---|---|
+| 2026-07-11 | M1-01 | `uv run ruff format --check .`; `uv run ruff check .`; `uv run mypy app tests`; `uv run pytest` | Passed: lint clean, mypy clean, 6 tests passed |
+| 2026-07-11 | M1-01 review follow-up | Acceptance gate and all entry points with `uv run --python 3.12` | Passed on CPython 3.12.13; 6 tests passed |
+| 2026-07-11 | M1-02 | Python 3.12 Ruff, mypy, and pytest gate | Passed: lint clean, mypy clean, 18 tests passed |
+| 2026-07-11 | M1-03 | Python 3.12 Ruff, mypy, and pytest gate | Passed: lint clean, mypy clean, 22 tests passed |
+| 2026-07-11 | M1-04 | Python gate; `docker compose config/build/up --wait`; health/port/network inspection | Passed: 23 tests; PostgreSQL and five app containers healthy; no host DB port |
+| 2026-07-11 | M1-05 | Python 3.12 Ruff, mypy, pytest; PostgreSQL DDL compilation | Passed: 30 tests; 11 tables compiled with indexes and constraints |
+| 2026-07-11 | M1-06 | Alembic upgrade/downgrade/upgrade; integration test; `alembic check` | Passed: 11 tables + 5 enums; empty metadata diff; integration test passed |
+| 2026-07-11 | M1-07 | Python gate; PostgreSQL duplicate/concurrency/retry/recovery/rollback integration | Passed: queue integration test on PostgreSQL 17; 30 unit tests passed |
+| 2026-07-11 | M1-08 | `make check` locally and from isolated clean-directory copy | Passed: 33 unit + 2 integration tests, Compose validation, runtime image build |
+| 2026-07-12 | M1 milestone gate | `make check`; full Compose startup/restart/health and PostgreSQL port inspection; repository secret/session scan; `git diff --check` | Passed: 33 unit + 2 integration tests; migration upgrade/downgrade/upgrade; all six containers healthy before and after restart; PostgreSQL not host-published; no credential/session artifacts found |
+| 2026-07-12 | M2-01 | `make format-check lint typecheck unit compose-config docker-build`; `git diff --check` | Passed: lint and types clean; 39 unit tests passed; Compose session volume valid; runtime image built; tests used fakes and made no Telegram login |
+| 2026-07-12 | M2-02 | `make format-check lint typecheck unit compose-config`; `git diff --check` | Passed: lint and types clean; 42 unit tests passed; lifecycle reconnect, graceful shutdown, unauthorized session, and exclusive lock scenarios covered; Compose config valid |
+| 2026-07-12 | M2-03 | `make format-check lint typecheck unit compose-config`; `git diff --check` | Passed: lint and types clean; 48 unit tests passed; message and callback authorization, menu, and network-free long-polling startup covered; Compose config valid |
+| 2026-07-12 | M2-04 | `make format-check lint typecheck unit compose-config`; `make integration`; `git diff --check` | Passed: lint and types clean; 49 unit + 3 integration tests passed; group-only picker, duplicate insert, persistent pause/resume, and removal covered; Compose config valid |
+| 2026-07-12 | M2-05 | `make format-check lint typecheck unit compose-config`; `make integration`; `git diff --check` | Passed: lint and types clean; 56 unit + 3 integration tests passed; active, read-only, access-lost, unsupported-channel, and transient-network outcomes covered; Compose config valid |
+| 2026-07-12 | M2-06 / M2 milestone gate | `make format-check lint typecheck unit compose-config`; `make integration`; `make docker-build`; `git diff --check` | Passed: lint and types clean; 60 unit + 3 integration tests passed; forum detection, General/named/deleted topic metadata, bounded cache, and persisted forum type covered; Compose config valid; runtime image built |
+| 2026-07-12 | M3-01 | `make format-check lint typecheck unit compose-config`; `git diff --check` | Passed: lint and types clean; 76 unit tests passed; immutable event mapping and all conservative prefilter outcomes covered; Compose config valid |
+| 2026-07-12 | M3-02 | `make format-check lint typecheck unit compose-config`; `make integration`; `git diff --check` | Passed: lint and types clean; 80 unit + 3 integration tests passed; startup/periodic refresh, inactive and paused chats, active-only DB loading, and safe snapshot retention covered; Compose config valid |
+| 2026-07-12 | M3-03 | `make format-check lint typecheck unit compose-config`; `make integration`; `git diff --check` | Passed: lint and types clean; 83 unit + 3 integration tests passed; fast handler, inactive-chat rejection, safe DB failure logging, active-state recheck, and duplicate ingestion covered; Compose config valid |
+| 2026-07-12 | M3-04 | `make format-check lint typecheck unit compose-config`; `make integration`; `git diff --check` | Passed: lint and types clean; 85 unit + 3 integration tests passed; exact backoff, terminal poison-job handling, DB-time queue age, stale recovery, and migration round-trip covered; Compose config valid |
+| 2026-07-12 | M3-05 / M3 milestone gate | `make format-check lint typecheck unit compose-config`; `make integration`; `make docker-build`; `git diff --check` | Passed: 10,000 unique messages + 250 duplicate deliveries produced exactly 10,000 jobs; 458.2 messages/second; 21.822-second oldest-job age; event loop remained responsive; 85 unit + 4 integration tests passed; runtime image built |
+| 2026-07-12 | M4-01 | `make format-check lint typecheck unit compose-config`; `git diff --check` | Passed: lint and types clean; 94 unit tests passed; strict closed schema, invalid/free-form rejection, versioned target-only prompt, and answer-generation prohibition covered; Compose config valid |
+| 2026-07-12 | M4-02 | `make format-check lint typecheck unit compose-config`; `git diff --check` | Passed: lint and types clean; 98 unit tests passed; configured model and timeout, strict Responses API payload, fake transport, usage exposure, and normalized timeout/schema errors covered; Compose config valid |
+| 2026-07-12 | M4-03 | `uv run ruff format --check .`; `uv run ruff check .`; `uv run mypy app tests`; `uv run pytest tests/unit -q`; `make integration` | Passed: format, lint, and types clean; 97 unit + 5 integration tests passed; target-only calls, irrelevant deletion, durable relevant/context routing, and no repeat claim covered |
+| 2026-07-12 | M4-04 | `uv run ruff format --check .`; `uv run ruff check .`; `uv run mypy app tests`; `uv run pytest tests/unit -q`; `make integration` | Passed: format, lint, and types clean; 100 unit + 5 integration tests passed; configurable pricing, per-stage usage persistence, exact daily token/cost aggregation, text-free usage rows, and month projection covered |
+| 2026-07-12 | M4-05 | `uv run ruff format --check .`; `uv run ruff check .`; `uv run mypy app tests`; `uv run pytest tests/unit -q`; `make integration` | Passed: format, lint, and types clean; 104 unit + 6 integration tests passed; normalized timeout/rate/schema/temporary/permanent errors, bounded retry, terminal failure, single successful accounting, and no repeat classification covered |
+| 2026-07-12 | M4-06 / M4 milestone gate | `make check` | Passed: format, lint, and types clean; 110 unit + 6 integration tests passed; deterministic 100-fixture report produced precision 1.000, recall 1.000, category accuracy 1.000, and no network calls; Compose valid; runtime image built |
+| 2026-07-12 | M5-01 | `make format-check lint typecheck unit compose-config`; `git diff --check` | Passed: format, lint, and types clean; 118 unit tests passed; no-reply, ordering, depth cap, deleted parent, cross-chat parent, and cycle scenarios covered; Compose valid |
+| 2026-07-12 | M5-02 | `make format-check lint typecheck unit compose-config`; `git diff --check` | Passed: format, lint, and types clean; 122 unit tests passed; General and named topics, cached title lookup, unavailable metadata, identifier preservation, and cross-topic protection covered; Compose valid |
+| 2026-07-12 | M5-03 | `make format-check lint typecheck unit compose-config`; `make integration`; `git diff --check` | Passed: format, lint, and types clean; 128 unit + 7 integration tests passed; Stage-1 transition guard, chronological chain, explicit target marker, ten-item cap, final decision persistence, and pre-API repeat rejection covered; Compose valid |
+| 2026-07-12 | M5-04 | `make format-check lint typecheck unit compose-config`; `make integration`; `git diff --check` | Passed: format, lint, and types clean; 129 unit + 9 integration tests passed; transaction rollback, idempotent retry, one question/notification, classification metadata, processing-job deletion, and irrelevant raw-text deletion covered; Compose valid |
+| 2026-07-12 | M5-05 / M5 milestone gate | `make check`; `git diff --check` | Passed: format, lint, and types clean; 129 unit + 11 integration tests passed; deterministic evaluation remained perfect; deleted-parent and forum-topic end-to-end paths, retry/duplicate protection, privacy fields, 60-day TTL, Compose config, and runtime image covered |
+| 2026-07-12 | M6-01 | `make format-check lint typecheck unit compose-config`; live LibreTranslate health/language/port/limit/volume recreation checks; `git diff --check` | Passed: 131 unit tests; Compose valid; LibreTranslate healthy with only `en,ru`; no host port binding; 2 CPU, 2 GiB and 256 PID limits applied; persistent model volume survived container recreation |
+| 2026-07-12 | M6-02 | `make format-check lint typecheck unit compose-config`; `git diff --check` | Passed: format, lint, and types clean; 136 unit tests passed; detect, translate, Russian bypass, timeout/original fallback, invalid response, and fake partial failure covered; Compose valid |
+| 2026-07-12 | M6-03 | `make format-check lint typecheck unit compose-config`; `make integration`; `git diff --check` | Passed: format, lint, and types clean; 136 unit + 12 integration tests passed; repeat seed remained idempotent; repository and direct PostgreSQL mutations could not disable, demote, or delete required languages; migration round-trip and Compose config valid |
+| 2026-07-12 | M6-04 | `uv run ruff format --check .`; `uv run ruff check .`; `uv run mypy app tests`; `uv run pytest tests/unit -q`; `make integration`; `make compose-config`; `docker compose build translation-manager`; manager image Python/Argos smoke; `git diff --check` | Passed: format, lint, and types clean; 139 unit + 12 integration tests passed; manager-job migration round-trip and Compose config valid; Python 3.12.13 manager image built with Argos CLI; allow-list, shell-fragment rejection, fixed argv, and LibreTranslate-only reload covered |
+| 2026-07-12 | M6-05 | `make format-check lint typecheck unit compose-config`; `make integration`; `git diff --check` | Passed: format, lint, and types clean; 149 unit + 12 integration tests passed; active/available rendering, install/delete confirmation, required-language protection, installing/installed/failed state, typed PostgreSQL enqueue, and Compose config covered |
+| 2026-07-12 | M6-06 / M6 milestone gate | `make check`; `git diff --check` | Passed: format, lint, and types clean; 151 unit + 13 integration tests passed; partial translation failure, per-item language/status persistence, disabled notification delivery, deterministic classifier evaluation, Compose config, and runtime image covered |
+| 2026-07-12 | M7-01 | `make check`; `git diff --check` | Passed: format, lint, and types clean; 154 unit + 13 integration tests passed; deterministic long-chain rendering, per-part 4096-character bounds, balanced escaped HTML, opaque UUID callbacks, final-part-only controls, Compose config, and runtime image covered |
+| 2026-07-12 | M7-02 | `make check`; `git diff --check` | Passed: format, lint, and types clean; 156 unit + 13 integration tests passed; public/private target links, forum-topic preservation, unavailable-link fallback, callback opacity, Compose config, and runtime image covered |
+| 2026-07-12 | M7-03 | `make check`; `git diff --check` | Passed: format, lint, and types clean; 156 unit + 14 integration tests passed; PostgreSQL FSM restart persistence, active-question binding, explicit replacement guard, migration round-trip, Compose config, and runtime image covered |
+| 2026-07-12 | M7-04 | `uv run ruff format --check .`; `uv run ruff check .`; `uv run mypy app tests`; `uv run pytest tests/unit -q`; targeted PostgreSQL integration tests; `git diff --check` | Passed: format, lint, and types clean; 158 unit + 2 targeted integration tests passed; immutable versions, exact preview text, question binding, explicit replacement, cancellation, and zero outbound commands covered. Full integration run reached the new passing test but exposed a pre-existing nondeterministic M6 job-order assertion. |
+| 2026-07-12 | M7-05 | `uv run ruff format --check .`; `uv run ruff check .`; `uv run mypy app tests`; `uv run pytest tests/unit -q`; `make integration`; `git diff --check` | Passed: format, lint, and types clean; 159 unit tests passed; PostgreSQL integration suite exited successfully; idempotent dismissal, explicit reopen, draft blocking, text-free feedback, and zero outbound commands covered. |
+| 2026-07-12 | M7-06 / M7 milestone gate | `make check`; `git diff --check` | Passed: format, lint, and types clean; 159 unit + 18 integration tests passed; authorization and long messages crossed network-free aiogram boundaries; restart, duplicate callbacks, draft state transitions, deterministic manager-job ordering, zero outbound MTProto commands, Compose config, and runtime image covered. |
+| 2026-07-12 | M8-01 | targeted Ruff; `uv run mypy app tests`; `uv run pytest tests/unit -q`; `make integration`; `git diff --check` | Passed: lint and types clean; 159 unit + 19 integration tests passed; exact preview preservation, deterministic idempotency key, duplicate confirmation, atomic status transition, and forced rollback covered. |
+| 2026-07-12 | M8-02 | `uv run ruff format --check .`; `uv run ruff check .`; `uv run mypy app tests`; `uv run pytest tests/unit -q`; `make integration`; `git diff --check` | Passed: format, lint, and types clean; 160 unit + 20 integration tests passed; exact target reply, forum topic preservation, transactional sent state, concurrent `SKIP LOCKED` claim, and completed-command idempotency covered. |
+| 2026-07-12 | M8-03 | `uv run ruff format --check .`; `uv run ruff check .`; `uv run mypy app tests`; `uv run pytest tests/unit -q`; `make integration`; `git diff --check` | Passed: format, lint, and types clean; 165 unit + 21 integration tests passed; permanent deleted/forbidden failures, exact FLOOD_WAIT scheduling, bounded safe retry, and ambiguous-send `needs_review` behavior covered. |
+| 2026-07-12 | M8-04 | `uv run ruff format --check .`; `uv run ruff check .`; `uv run mypy app tests`; `uv run pytest tests/unit -q`; targeted PostgreSQL integration test; `git diff --check` | Passed: format, lint, and types clean; 167 unit + 3 targeted integration tests passed; exact stored sent-message targeting, duplicate confirmation idempotency, successful version append, and failed-edit state preservation covered. Full Compose integration build was unavailable because Docker Hub token access was unreachable. |
+| 2026-07-12 | M8-05 | `uv run ruff check .`; `uv run mypy app tests`; `uv run pytest tests/unit -q`; `make integration`; `git diff --check` | Passed: lint and types clean; 171 unit + 22 integration tests passed; normalized errors, original/answer links, repository-guarded safe edit retry, FLOOD_WAIT delay protection, permanent-error rejection, and ambiguous `needs_review` no-retry behavior covered. |

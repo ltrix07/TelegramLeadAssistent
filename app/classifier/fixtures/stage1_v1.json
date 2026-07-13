@@ -1,0 +1,702 @@
+[
+  {
+    "fixture_id": "technical-001",
+    "text": "После обновления Docker контейнер постоянно перезапускается. Как найти причину?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-002",
+    "text": "How can I configure PostgreSQL connection pooling for an async Python service?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-003",
+    "text": "Почему Alembic не видит новую колонку при autogenerate?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-004",
+    "text": "Как безопасно обработать webhook повторно без создания дублей?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-005",
+    "text": "Redis возвращает MOVED после добавления новых узлов. Что проверить?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-006",
+    "text": "Как настроить mutual TLS между двумя внутренними сервисами?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-007",
+    "text": "После смены DNS приложение получает старый IP. Где искать кеш?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-008",
+    "text": "Why does my asyncio task remain pending after cancellation?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-009",
+    "text": "Как ограничить память Docker-контейнера и корректно обработать OOM?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-010",
+    "text": "SQL-запрос стал медленным после роста таблицы. Как диагностировать план?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-011",
+    "text": "How do I validate a signed Telegram webhook request?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-012",
+    "text": "Почему nginx отдаёт 502 только для больших запросов?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-013",
+    "text": "Как реализовать идемпотентный consumer очереди at-least-once?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-014",
+    "text": "После обновления сертификата Java-клиент всё ещё видит expired certificate. Почему?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-015",
+    "text": "Как передать structured output через OpenAI Responses API?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-016",
+    "text": "Why is my SQLAlchemy async session raising MissingGreenlet?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-017",
+    "text": "Как настроить healthcheck, чтобы он не создавал лишнюю нагрузку на БД?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-018",
+    "text": "Пакеты UDP теряются только внутри Kubernetes. Что проверить?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-019",
+    "text": "Как защититься от race condition при одновременном обновлении строки?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-020",
+    "text": "Почему mypy не сужает тип после проверки пользовательского TypeGuard?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-021",
+    "text": "How can I stream a large file without loading it fully into memory?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-022",
+    "text": "Как сделать downgrade миграции для PostgreSQL enum?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-023",
+    "text": "После рестарта worker повторно обрабатывает завершённую задачу. Как исправить?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-024",
+    "text": "Почему запрос с индексом всё равно делает sequential scan?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-025",
+    "text": "Как настроить таймауты httpx отдельно для connect и read?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-026",
+    "text": "How should I rotate an API key without service downtime?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-027",
+    "text": "Как проверить подпись JWT и запретить неподходящий audience?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-028",
+    "text": "В Telethon перестали приходить события одного чата. Как диагностировать?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-029",
+    "text": "Как ограничить число параллельных запросов в async worker?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-030",
+    "text": "Почему Docker Compose не ждёт готовности PostgreSQL перед запуском приложения?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-001",
+    "text": "Стоит ли для небольшого MVP выбрать модульный монолит или сразу микросервисы?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-002",
+    "text": "Как сравнить managed PostgreSQL и самостоятельный сервер для нашего продукта?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-003",
+    "text": "Which rollout strategy is safer for a risky database change?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-004",
+    "text": "Стоит ли сначала запускать shadow mode или сразу показывать уведомления оператору?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-005",
+    "text": "Как выбрать между покупкой готовой CRM и собственной разработкой?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-006",
+    "text": "Нужно ли нам разделять очередь классификации и перевода на первом релизе?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-007",
+    "text": "Как оценить, стоит ли переносить сервис с Python на Go?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-008",
+    "text": "Which authentication approach is better for a B2B internal tool?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-009",
+    "text": "Стоит ли хранить события бессрочно или ввести короткий TTL?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-010",
+    "text": "Как выбрать облачного провайдера с учётом vendor lock-in?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-011",
+    "text": "Нужно ли добавлять Redis, если PostgreSQL уже справляется с очередью?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-012",
+    "text": "Какую стратегию версионирования API выбрать для внешних клиентов?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-013",
+    "text": "Стоит ли выпускать функцию всем пользователям или начать с закрытой группы?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-014",
+    "text": "How should we prioritize reliability versus feature delivery this quarter?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-015",
+    "text": "Как сравнить serverless и постоянные workers для нерегулярной нагрузки?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-016",
+    "text": "Стоит ли делать мобильное приложение до проверки спроса в веб-версии?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-017",
+    "text": "Как определить, какие интеграции включить в первый коммерческий тариф?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-018",
+    "text": "Which backup strategy best balances recovery time and operating cost?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-019",
+    "text": "Нужно ли локализовать продукт до выхода на второй рынок?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-020",
+    "text": "Как решить, оставлять ли неэффективный канал привлечения в следующем месяце?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "operational-001",
+    "text": "Как организовать дежурства, чтобы критические алерты не оставались без ответа?",
+    "expected_is_relevant": true,
+    "expected_category": "operational",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "operational-002",
+    "text": "Наши релизы часто блокируются ручными проверками. Как улучшить процесс?",
+    "expected_is_relevant": true,
+    "expected_category": "operational",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "operational-003",
+    "text": "How can we reduce handoff delays between support and engineering?",
+    "expected_is_relevant": true,
+    "expected_category": "operational",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "operational-004",
+    "text": "Какой процесс завести для регулярной ротации секретов?",
+    "expected_is_relevant": true,
+    "expected_category": "operational",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "operational-005",
+    "text": "Команда забывает обновлять runbook после инцидентов. Как это исправить?",
+    "expected_is_relevant": true,
+    "expected_category": "operational",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "operational-006",
+    "text": "Как организовать triage входящих багов между тремя командами?",
+    "expected_is_relevant": true,
+    "expected_category": "operational",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "operational-007",
+    "text": "Что изменить в code review, если pull request ждёт проверки несколько дней?",
+    "expected_is_relevant": true,
+    "expected_category": "operational",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "operational-008",
+    "text": "How should we document ownership for production services?",
+    "expected_is_relevant": true,
+    "expected_category": "operational",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "operational-009",
+    "text": "Как выстроить процесс удаления доступа у уволившихся сотрудников?",
+    "expected_is_relevant": true,
+    "expected_category": "operational",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "operational-010",
+    "text": "У нас дублируются задачи в двух трекерах. Как наладить единый workflow?",
+    "expected_is_relevant": true,
+    "expected_category": "operational",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "operational-011",
+    "text": "Как проводить postmortem без поиска виноватых и с контролем действий?",
+    "expected_is_relevant": true,
+    "expected_category": "operational",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "operational-012",
+    "text": "Как организовать проверку резервных копий, а не только их создание?",
+    "expected_is_relevant": true,
+    "expected_category": "operational",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "operational-013",
+    "text": "How can we make weekly on-call rotation fair and predictable?",
+    "expected_is_relevant": true,
+    "expected_category": "operational",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "operational-014",
+    "text": "Как сократить время согласования типовых изменений инфраструктуры?",
+    "expected_is_relevant": true,
+    "expected_category": "operational",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "operational-015",
+    "text": "Какой порядок эскалации установить для обращений важных клиентов?",
+    "expected_is_relevant": true,
+    "expected_category": "operational",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "analytics-001",
+    "text": "Почему конверсия выросла, хотя число новых пользователей снизилось?",
+    "expected_is_relevant": true,
+    "expected_category": "analytics",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "analytics-002",
+    "text": "How should I interpret a widening gap between p50 and p95 latency?",
+    "expected_is_relevant": true,
+    "expected_category": "analytics",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "analytics-003",
+    "text": "Какие метрики покажут, что новый onboarding действительно стал лучше?",
+    "expected_is_relevant": true,
+    "expected_category": "analytics",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "analytics-004",
+    "text": "Как проверить, статистически значимо ли изменение retention?",
+    "expected_is_relevant": true,
+    "expected_category": "analytics",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "analytics-005",
+    "text": "Почему средний чек растёт, а общая выручка падает?",
+    "expected_is_relevant": true,
+    "expected_category": "analytics",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "analytics-006",
+    "text": "How can we distinguish seasonal traffic from product growth?",
+    "expected_is_relevant": true,
+    "expected_category": "analytics",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "analytics-007",
+    "text": "Каким графиком лучше показать вклад каналов в число лидов?",
+    "expected_is_relevant": true,
+    "expected_category": "analytics",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "analytics-008",
+    "text": "Как оценить влияние пропущенных данных на итоговый отчёт?",
+    "expected_is_relevant": true,
+    "expected_category": "analytics",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "analytics-009",
+    "text": "Что означает рост error rate только при неизменном количестве запросов?",
+    "expected_is_relevant": true,
+    "expected_category": "analytics",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "analytics-010",
+    "text": "How should we calculate cohort retention for users who return irregularly?",
+    "expected_is_relevant": true,
+    "expected_category": "analytics",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-001",
+    "text": "Всем доброе утро!",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-002",
+    "text": "Спасибо, всё получилось.",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-003",
+    "text": "Как у вас настроение сегодня?",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-004",
+    "text": "Поздравляю команду с пятницей!",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-005",
+    "text": "Кто-нибудь идёт сегодня на обед?",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-006",
+    "text": "Привет! Рад присоединиться к чату.",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-007",
+    "text": "Отличная погода за окном.",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-008",
+    "text": "С днём рождения!",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-009",
+    "text": "Да, полностью согласен.",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-010",
+    "text": "Хорошего вечера всем.",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-011",
+    "text": "Кто смотрел вчерашний матч?",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-012",
+    "text": "Спасибо за встречу, было приятно познакомиться.",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-013",
+    "text": "Я немного опоздаю.",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-014",
+    "text": "Увидимся завтра.",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-015",
+    "text": "Классная фотография!",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-016",
+    "text": "Купите наш курс со скидкой 50%, ссылка в профиле.",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-017",
+    "text": "Лучшие криптосигналы, вступайте в закрытый канал!",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-018",
+    "text": "Сдам квартиру у метро, пишите в личку.",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-019",
+    "text": "Visit our casino and claim your welcome bonus today.",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-020",
+    "text": "Продам новый телефон, недорого.",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-021",
+    "text": "Подписывайтесь на мой блог о путешествиях.",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-022",
+    "text": "Ищем моделей для фотосессии, оплата ежедневно.",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-023",
+    "text": "Бесплатная доставка пиццы по промокоду CHAT.",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-024",
+    "text": "Vote for my song in the contest using this link.",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-025",
+    "text": "Обсудим результаты футбольного чемпионата?",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  }
+]

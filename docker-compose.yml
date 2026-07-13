@@ -1,0 +1,135 @@
+x-app-service: &app-service
+  build:
+    context: .
+    dockerfile: Dockerfile
+  image: telegram-lead-assistant:local
+  init: true
+  stop_grace_period: 10s
+  environment: &app-environment
+    APP_ENV: ${APP_ENV:-development}
+    LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-app}
+  depends_on:
+    postgres:
+      condition: service_healthy
+  networks:
+    - backend
+    - egress
+  healthcheck:
+    test: ["CMD", "python", "-m", "scripts.healthcheck"]
+    interval: 10s
+    timeout: 5s
+    retries: 5
+    start_period: 5s
+
+services:
+  postgres:
+    image: postgres:17.5-bookworm
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-app}
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  libretranslate:
+    image: libretranslate/libretranslate:v1.9.6
+    environment:
+      LT_LOAD_ONLY: en,ru
+      LT_DISABLE_WEB_UI: "true"
+      LT_DISABLE_FILES_TRANSLATION: "true"
+    volumes:
+      - libretranslate_models:/home/libretranslate/.local
+    networks:
+      - backend
+      - egress
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import json, urllib.request;
+          response = urllib.request.urlopen('http://127.0.0.1:5000/health', timeout=5);
+          assert response.status == 200 and json.load(response).get('status') == 'ok'
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 120s
+    cpus: 2.0
+    mem_limit: 2g
+    pids_limit: 256
+
+  telegram-listener:
+    <<: *app-service
+    command: ["python", "-m", "app.listener"]
+    environment:
+      <<: *app-environment
+      TELEGRAM_API_ID: ${TELEGRAM_API_ID:?Set TELEGRAM_API_ID}
+      TELEGRAM_API_HASH: ${TELEGRAM_API_HASH:?Set TELEGRAM_API_HASH}
+      TELEGRAM_SESSION_PATH: ${TELEGRAM_SESSION_PATH:-/sessions/work_account.session}
+    volumes:
+      - mtproto_session:/sessions
+
+  classification-worker:
+    <<: *app-service
+    command: ["sh", "-c", "python -m app.classifier.worker && exec sleep infinity"]
+    environment:
+      <<: *app-environment
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?Set OPENAI_API_KEY}
+      OPENAI_CLASSIFIER_MODEL: ${OPENAI_CLASSIFIER_MODEL:-gpt-5.4-nano-2026-03-17}
+
+  operator-bot:
+    <<: *app-service
+    command: ["sh", "-c", "python -m app.bot && exec sleep infinity"]
+    environment:
+      <<: *app-environment
+      OPERATOR_BOT_TOKEN: ${OPERATOR_BOT_TOKEN:?Set OPERATOR_BOT_TOKEN}
+      OPERATOR_TELEGRAM_USER_ID: ${OPERATOR_TELEGRAM_USER_ID:?Set OPERATOR_TELEGRAM_USER_ID}
+
+  translation-manager:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: translation-manager
+    image: telegram-lead-assistant-translation-manager:local
+    init: true
+    command: ["python", "-m", "app.translation.manager"]
+    user: "1032:1032"
+    pid: "service:libretranslate"
+    networks:
+      - backend
+      - egress
+    environment:
+      <<: *app-environment
+      HOME: /home/libretranslate
+      TRANSLATION_BASE_URL: http://libretranslate:5000
+    volumes:
+      - libretranslate_models:/home/libretranslate/.local
+    depends_on:
+      postgres:
+        condition: service_healthy
+      libretranslate:
+        condition: service_healthy
+
+  maintenance-worker:
+    <<: *app-service
+    command: ["sh", "-c", "python -m app.maintenance && exec sleep infinity"]
+
+networks:
+  backend:
+    internal: true
+  egress:
+
+volumes:
+  postgres_data:
+  mtproto_session:
+  libretranslate_models:

@@ -1,0 +1,1 @@
+"""Translation language management."""
