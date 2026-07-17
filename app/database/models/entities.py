@@ -234,6 +234,7 @@ class ClassificationRun(Base):
     estimated_cost_usd: Mapped[Decimal] = mapped_column(
         Numeric(12, 6), nullable=False, server_default=sql_text("0")
     )
+    queued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=sql_text("NOW()")
     )

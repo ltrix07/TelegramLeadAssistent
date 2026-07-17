@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import calendar
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from decimal import ROUND_HALF_UP, Decimal
 
 from sqlalchemy import func, select
@@ -53,6 +53,7 @@ class UsageRepository:
         telegram_chat_id: int,
         telegram_message_id: int,
         stage: int,
+        queued_at: datetime,
         model: str,
         response: ClassificationResponse,
         pricing: ClassificationPricing,
@@ -75,6 +76,7 @@ class UsageRepository:
                     telegram_chat_id=telegram_chat_id,
                     telegram_message_id=telegram_message_id,
                     stage=stage,
+                    queued_at=queued_at,
                     result=result_name,
                     category=result.category.value,
                     confidence=Decimal(str(result.confidence)),

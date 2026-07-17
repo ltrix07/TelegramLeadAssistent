@@ -60,6 +60,7 @@ class Stage1ClassificationHandler:
             telegram_chat_id=job.telegram_chat_id,
             telegram_message_id=job.telegram_message_id,
             stage=1,
+            queued_at=job.created_at,
             model=self._adapter.model,
             response=response,
             pricing=self._pricing,

@@ -145,6 +145,7 @@ async def _seed_context_job(factory: async_sessionmaker[AsyncSession], chat_pk: 
             telegram_chat_id=CHAT_ID,
             telegram_message_id=TARGET_MESSAGE_ID,
             stage=1,
+            queued_at=job.created_at,
             model="gate-model",
             response=_result(context_required=True),
             pricing=ClassificationPricing(Decimal("1"), Decimal("2")),

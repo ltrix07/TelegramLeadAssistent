@@ -78,6 +78,7 @@ async def _seed_job(
             telegram_chat_id=job.telegram_chat_id,
             telegram_message_id=job.telegram_message_id,
             stage=1,
+            queued_at=job.created_at,
             model="test-model",
             response=_classification_response(),
             pricing=ClassificationPricing(Decimal("1"), Decimal("2")),

@@ -31,12 +31,16 @@ boundaries; and exposed all active flag states in operator status output.
 
 ## Known blockers
 
-None. M10-02 is the next task.
+M10-02 implementation and automated verification are ready. Completion still requires selecting one
+staging/production chat, running a real shadow observation window with notifications and outbound
+disabled, and saving the resulting stability report. This is an external production action and was
+not performed automatically.
 
 ## Verification history
 
 | Date | Task/Milestone | Commands | Result |
 |---|---|---|---|
+| 2026-07-17 | M10-02 readiness | Ruff; `uv run mypy app alembic scripts tests`; unit suite; `make integration`; `git diff --check` | Passed: 203 unit and 27 PostgreSQL integration tests; exactly-one-chat and disabled notification/outbound preconditions fail closed, classifier result/cost/queue-latency aggregates are content-free, notification/outbound evidence remains zero, TTL state is reported, and migration lifecycle passes; live observation remains required |
 | 2026-07-17 | M10-01 | Scoped Ruff; `uv run mypy app tests/unit/test_config.py tests/unit/test_status_reporting.py tests/unit/test_operator_bot.py tests/unit/test_listener_lifecycle.py`; focused unit tests; Compose config; `git diff --check` | Passed: feature flags validate at startup, outbound defaults disabled, disabling outbound creates no command workers while ingestion remains registered, disabling monitoring/notifications stops their runtime boundaries, and status shows all active flags |
 | 2026-07-17 | M9-07 / M9 full gate | Isolated PostgreSQL 17.5 migration/encrypted dump/separate-database restore drill; Ruff; `uv run mypy app alembic scripts tests`; unit suite; classifier evaluation; integration suite; Compose config; runtime image build; `git diff --check` | Passed: encrypted custom dump restored to `app_restore_test` at Alembic `d8a1e4c7f206`, all 18 public tables and marker data recovered; full M9 gate passed |
 | 2026-07-17 | M9-06 | Ruff; `uv run mypy app alembic tests`; unit suite; `make integration`; `git diff --check` | Passed: lint and types clean, 192 unit and 26 PostgreSQL integration tests; daily/error-triggered scheduling is durable, one transient result preserves state, two consecutive access-loss results disable monitoring, and successful verification restores active state |

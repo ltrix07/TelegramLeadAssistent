@@ -151,6 +151,7 @@ async def _seed_job(
             telegram_chat_id=CHAT_ID,
             telegram_message_id=message_id,
             stage=1,
+            queued_at=job.created_at,
             model="runtime-model",
             response=_response(relevant=not context_required, context_required=context_required),
             pricing=ClassificationPricing(Decimal("1"), Decimal("2")),

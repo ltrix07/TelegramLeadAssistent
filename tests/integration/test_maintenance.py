@@ -182,6 +182,7 @@ async def _exercise(database_url: str) -> None:
                         result="relevant",
                         category="product",
                         model="test-model",
+                        queued_at=now - timedelta(days=61),
                         created_at=now - timedelta(days=61),
                     ),
                     ClassificationRun(
@@ -191,6 +192,7 @@ async def _exercise(database_url: str) -> None:
                         result="relevant",
                         category="product",
                         model="test-model",
+                        queued_at=now,
                         created_at=now,
                     ),
                 ]
