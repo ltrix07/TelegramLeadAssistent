@@ -202,3 +202,23 @@ Only decisions not already fixed by `docs/SPEC.md` belong here.
   to confirm.
 - SPEC impact: Clarifies the existing repeated/transient-safe verification requirement without
   changing operator workflow.
+
+### ADR-012 — Encrypted database-only backup boundary and retention
+
+- Date: 2026-07-17
+- Status: Accepted
+- Related task: M9-07
+- Context: The specification requires a private backup procedure and recovery test but does not
+  define retention, recovery objectives, or whether host secrets and the MTProto session belong in
+  the same artifact.
+- Decision: Create an AES-256-encrypted PostgreSQL custom-format dump every 24 hours and before
+  migrations or rollout. Keep seven daily and four weekly backups, including a private off-host
+  copy, and test restore to a separate database at least every 90 days. The MVP RPO is 24 hours;
+  measured restore evidence will inform a future RTO. Exclude `.env`, credentials, MTProto session,
+  and reproducible translation models from the database backup.
+- Alternatives considered: Back up every Docker volume together, retain dumps indefinitely, or
+  store unencrypted dumps on the Docker host.
+- Consequences: Database recovery is testable without copying authentication material. Operators
+  must manage the encryption passphrase separately, provision a new Telegram session if its volume
+  is lost, and rotate expired primary and off-host artifacts.
+- SPEC impact: Clarifies the operational policy for the existing backup requirement.

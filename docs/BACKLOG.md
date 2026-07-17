@@ -908,7 +908,7 @@ Acceptance:
 - one temporary network error does not mark access lost;
 - restored access can return to active safely.
 
-### [ ] M9-07 Backup and restore runbook
+### [x] M9-07 Backup and restore runbook
 
 Dependencies: M9-02.
 

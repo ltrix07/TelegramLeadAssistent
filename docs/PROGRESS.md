@@ -2,10 +2,10 @@
 
 ## Current state
 
-- Current milestone: M9
-- Current task: M9-07
-- Last completed task: M9-06
-- Last review status: M8 milestone gate passed
+- Current milestone: M10
+- Current task: M10-01
+- Last completed task: M9-07
+- Last review status: M9 full gate passed
 - Production outbound replies: disabled
 
 ## Milestone status
@@ -20,23 +20,24 @@
 | M6 Local translation | Complete |
 | M7 Operator workflow | Complete |
 | M8 MTProto send/edit | Complete |
-| M9 Operations | In progress |
+| M9 Operations | Complete |
 | M10 Rollout | Not started |
 
 ## Last completed work
 
-M9-06 — Enabled chats are reverified daily and promptly after access-related outbound errors.
-Transient failures preserve state; access loss requires two consecutive results, while a successful
-check restores active monitoring and resets durable failure evidence.
+M9-07 — Added the encrypted PostgreSQL backup and recovery runbook with database-only scope,
+private/off-host retention, separate-database restore safeguards, incident recovery sequencing, and
+a recorded PostgreSQL 17 restore drill.
 
 ## Known blockers
 
-None. M9-07 is the next task.
+None. M10-01 is the next task.
 
 ## Verification history
 
 | Date | Task/Milestone | Commands | Result |
 |---|---|---|---|
+| 2026-07-17 | M9-07 / M9 full gate | Isolated PostgreSQL 17.5 migration/encrypted dump/separate-database restore drill; Ruff; `uv run mypy app alembic scripts tests`; unit suite; classifier evaluation; integration suite; Compose config; runtime image build; `git diff --check` | Passed: encrypted custom dump restored to `app_restore_test` at Alembic `d8a1e4c7f206`, all 18 public tables and marker data recovered; full M9 gate passed |
 | 2026-07-17 | M9-06 | Ruff; `uv run mypy app alembic tests`; unit suite; `make integration`; `git diff --check` | Passed: lint and types clean, 192 unit and 26 PostgreSQL integration tests; daily/error-triggered scheduling is durable, one transient result preserves state, two consecutive access-loss results disable monitoring, and successful verification restores active state |
 | 2026-07-17 | M9-05 | Ruff; `uv run mypy app alembic tests`; unit suite; `make integration`; `git diff --check` | Passed: 192 unit and 26 PostgreSQL integration tests; monthly budget crossings and prolonged failure episodes are durable, deduplicated, content-free, and restricted to the configured operator |
 | 2026-07-14 | M9-04 | Ruff; `uv run mypy app tests`; `make unit`; `make integration`; `git diff --check` | Passed: lint and types clean, 190 unit tests and 25 PostgreSQL integration tests passed; core success/error counters and latency observations emit structured content-free events, and redaction fails closed for unstructured, nested, exception, and variant sensitive inputs |
