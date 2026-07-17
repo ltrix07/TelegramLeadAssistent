@@ -32,6 +32,7 @@ def test_session_volume_is_mounted_only_by_listener() -> None:
     dockerfile = Path("Dockerfile").read_text(encoding="utf-8")
 
     assert compose.count("- mtproto_session:/sessions") == 1
+    assert "target: runtime" in compose
     assert "install -d -o app -g app /sessions" in dockerfile
 
 

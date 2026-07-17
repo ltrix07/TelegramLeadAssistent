@@ -129,6 +129,7 @@ class JobRepository:
         job.locked_by = None
         job.last_error_code = None
         job.last_error_message = None
+        job.attempt_count = 0
         await self._session.flush()
 
     async def fail(

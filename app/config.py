@@ -69,9 +69,15 @@ class AppSettings(BaseSettings):
     temporary_message_ttl_hours: int = Field(default=24, gt=0)
     technical_log_retention_days: int = Field(default=30, gt=0)
 
+    maintenance_interval_seconds: float = Field(default=30, gt=0)
+    stale_lock_timeout_seconds: int = Field(default=300, gt=0)
+
     api_info_threshold_usd: Decimal = Field(default=Decimal("5"), ge=0)
     api_warning_threshold_usd: Decimal = Field(default=Decimal("8"), ge=0)
     api_critical_threshold_usd: Decimal = Field(default=Decimal("10"), ge=0)
+    mtproto_alert_after_seconds: int = Field(default=300, gt=0)
+    queue_delay_alert_after_seconds: int = Field(default=600, gt=0)
+    translator_alert_after_seconds: int = Field(default=900, gt=0)
 
     _required_fields: ClassVar[dict[ServiceName, tuple[tuple[str, str], ...]]] = {
         ServiceName.TELEGRAM_LISTENER: (
@@ -86,6 +92,7 @@ class AppSettings(BaseSettings):
         ServiceName.CLASSIFICATION_WORKER: (
             ("database_url", "DATABASE_URL"),
             ("openai_api_key", "OPENAI_API_KEY"),
+            ("operator_telegram_user_id", "OPERATOR_TELEGRAM_USER_ID"),
         ),
         ServiceName.OPERATOR_BOT: (
             ("database_url", "DATABASE_URL"),

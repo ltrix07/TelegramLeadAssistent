@@ -1,5 +1,6 @@
 """Database repositories."""
 
+from app.database.repositories.bot_notifications import BotNotificationRepository
 from app.database.repositories.monitored_chats import MonitoredChatRepository, NewMonitoredChat
 from app.database.repositories.operator_sessions import (
     ActiveDraftConflictError,
@@ -31,6 +32,7 @@ from app.database.repositories.translation_languages import (
 __all__ = [
     "REQUIRED_LANGUAGES",
     "ActiveDraftConflictError",
+    "BotNotificationRepository",
     "ConfirmationUnavailableError",
     "ConfirmedCommand",
     "DraftDestination",
@@ -48,3 +50,6 @@ __all__ = [
     "StoredDraft",
     "TranslationLanguageRepository",
 ]
+from app.database.repositories.operational_alerts import OperationalAlertRepository
+
+__all__ = ["OperationalAlertRepository"]

@@ -25,6 +25,7 @@ def main() -> None:
                 token,
                 operator_user_id,
                 session_factory,
+                settings,
             )
         finally:
             await engine.dispose()

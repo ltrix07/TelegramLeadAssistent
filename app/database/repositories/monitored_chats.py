@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import cast
 from uuid import UUID, uuid4
 
-from sqlalchemy import delete, func, select, update
+from sqlalchemy import case, delete, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -87,18 +88,28 @@ class MonitoredChatRepository:
             ),
         )
 
-    async def list_pending_verification(self, *, limit: int = 20) -> list[MonitoredChat]:
-        """Return a bounded batch of chats waiting for MTProto verification."""
+    async def list_due_verification(self, *, limit: int = 20) -> list[MonitoredChat]:
+        """Return a bounded batch of enabled chats due for MTProto verification."""
         rows = await self._session.scalars(
             select(MonitoredChat)
-            .where(MonitoredChat.status == MonitoredChatStatus.PENDING_VERIFICATION)
-            .order_by(MonitoredChat.updated_at, MonitoredChat.id)
+            .where(
+                MonitoredChat.status != MonitoredChatStatus.DISABLED,
+                MonitoredChat.next_verification_at <= func.now(),
+            )
+            .order_by(MonitoredChat.next_verification_at, MonitoredChat.id)
             .limit(limit)
         )
         return list(rows)
 
-    async def apply_verification(self, chat_id: UUID, result: ChatVerificationResult) -> bool:
-        """Persist a terminal result only while the chat is still pending."""
+    async def apply_verification(
+        self,
+        chat_id: UUID,
+        result: ChatVerificationResult,
+        *,
+        daily_interval: timedelta = timedelta(days=1),
+        confirmation_interval: timedelta = timedelta(minutes=5),
+    ) -> bool:
+        """Persist verification, requiring two consecutive access-loss results."""
         status = MonitoredChatStatus(result.outcome.value)
         if result.is_forum:
             chat_type = MonitoredChatType.FORUM_SUPERGROUP
@@ -106,24 +117,82 @@ class MonitoredChatRepository:
             chat_type = MonitoredChatType.SUPERGROUP
         else:
             chat_type = MonitoredChatType.GROUP
+        access_lost = result.outcome == ChatVerificationOutcome.ACCESS_LOST
         values: dict[str, object] = {
-            "status": status,
+            "status": (
+                case(
+                    (
+                        MonitoredChat.consecutive_access_failures >= 1,
+                        MonitoredChatStatus.ACCESS_LOST,
+                    ),
+                    else_=MonitoredChat.status,
+                )
+                if access_lost
+                else status
+            ),
             "chat_type": chat_type,
             "last_verified_at": func.now(),
+            "next_verification_at": func.now()
+            + (
+                case(
+                    (MonitoredChat.consecutive_access_failures >= 1, daily_interval),
+                    else_=confirmation_interval,
+                )
+                if access_lost
+                else daily_interval
+            ),
+            "consecutive_access_failures": (
+                MonitoredChat.consecutive_access_failures + 1 if access_lost else 0
+            ),
             "updated_at": func.now(),
             "last_error_code": result.error_code,
             "last_error_message": None,
             "access_lost_at": (
-                func.now() if result.outcome == ChatVerificationOutcome.ACCESS_LOST else None
+                case(
+                    (
+                        MonitoredChat.consecutive_access_failures >= 1,
+                        func.coalesce(MonitoredChat.access_lost_at, func.now()),
+                    ),
+                    else_=MonitoredChat.access_lost_at,
+                )
+                if access_lost
+                else None
             ),
         }
         changed_id = await self._session.scalar(
             update(MonitoredChat)
             .where(
                 MonitoredChat.id == chat_id,
-                MonitoredChat.status == MonitoredChatStatus.PENDING_VERIFICATION,
+                MonitoredChat.status != MonitoredChatStatus.DISABLED,
             )
             .values(**values)
+            .returning(MonitoredChat.id)
+        )
+        return changed_id is not None
+
+    async def defer_verification(
+        self, chat_id: UUID, *, retry_interval: timedelta = timedelta(minutes=5)
+    ) -> bool:
+        """Retry a transient verification without changing chat access evidence."""
+        changed_id = await self._session.scalar(
+            update(MonitoredChat)
+            .where(
+                MonitoredChat.id == chat_id, MonitoredChat.status != MonitoredChatStatus.DISABLED
+            )
+            .values(next_verification_at=func.now() + retry_interval, updated_at=func.now())
+            .returning(MonitoredChat.id)
+        )
+        return changed_id is not None
+
+    async def request_verification(self, telegram_chat_id: int) -> bool:
+        """Schedule an immediate access check after a relevant Telegram error."""
+        changed_id = await self._session.scalar(
+            update(MonitoredChat)
+            .where(
+                MonitoredChat.telegram_chat_id == telegram_chat_id,
+                MonitoredChat.status != MonitoredChatStatus.DISABLED,
+            )
+            .values(next_verification_at=func.now(), updated_at=func.now())
             .returning(MonitoredChat.id)
         )
         return changed_id is not None
@@ -151,6 +220,8 @@ class MonitoredChatRepository:
             )
             .values(
                 status=MonitoredChatStatus.PENDING_VERIFICATION,
+                next_verification_at=func.now(),
+                consecutive_access_failures=0,
                 updated_at=func.now(),
             )
             .returning(MonitoredChat.id)

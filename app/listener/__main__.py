@@ -4,11 +4,15 @@ from __future__ import annotations
 
 import asyncio
 import signal
+from typing import cast
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.config import ServiceName, load_startup_settings
+from app.database.downstream import DownstreamPhase
+from app.database.health import run_heartbeat
 from app.database.session import create_session_factory
+from app.database.worker import DownstreamQueueWorker
 from app.listener.active_chats import (
     ActiveChatAllowList,
     database_active_chat_loader,
@@ -24,6 +28,8 @@ from app.listener.lifecycle import (
 )
 from app.listener.mtproto import MTProtoClient, create_telethon_client
 from app.listener.outbound import EditReplyWorker, SendReplyWorker
+from app.listener.reply_chain import ReplyMessageSource
+from app.listener.reply_chain_worker import ReplyChainSnapshotHandler
 from app.logging import configure_logging
 
 
@@ -36,8 +42,15 @@ async def _run_connected_tasks(
     outbound_replies_enabled: bool,
 ) -> None:
     tasks = [
+        run_heartbeat(session_factory, "telegram-listener"),
         run_chat_verifier(client, session_factory, stop_event),
         run_active_chat_allow_list(allow_list, stop_event),
+        DownstreamQueueWorker(
+            session_factory,
+            "telegram-listener-reply-chain-1",
+            DownstreamPhase.REPLY_CHAIN,
+            ReplyChainSnapshotHandler(cast(ReplyMessageSource, client)),
+        ).run_forever(),
     ]
     if outbound_replies_enabled:
         tasks.extend(

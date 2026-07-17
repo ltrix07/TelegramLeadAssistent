@@ -2,10 +2,10 @@
 
 ## Current state
 
-- Current milestone: M8
-- Current task: M8-06
-- Last completed task: M8-05
-- Last review status: M8-05 acceptance passed
+- Current milestone: M9
+- Current task: M9-07
+- Last completed task: M9-06
+- Last review status: M8 milestone gate passed
 - Production outbound replies: disabled
 
 ## Milestone status
@@ -19,25 +19,30 @@
 | M5 Reply context | Complete |
 | M6 Local translation | Complete |
 | M7 Operator workflow | Complete |
-| M8 MTProto send/edit | In progress |
-| M9 Operations | Not started |
+| M8 MTProto send/edit | Complete |
+| M9 Operations | In progress |
 | M10 Rollout | Not started |
 
 ## Last completed work
 
-M8-05 — The operator menu lists normalized outbound failures with open-original and, when a sent
-message ID exists, open-answer controls. Repository-enforced retry is available only for an
-idempotent failed edit with a normalized temporary error. Pending `FLOOD_WAIT`, permanent failures,
-and every `needs_review` result remain fail-closed even when a callback is replayed or forged.
+M9-06 — Enabled chats are reverified daily and promptly after access-related outbound errors.
+Transient failures preserve state; access loss requires two consecutive results, while a successful
+check restores active monitoring and resets durable failure evidence.
 
 ## Known blockers
 
-None.
+None. M9-07 is the next task.
 
 ## Verification history
 
 | Date | Task/Milestone | Commands | Result |
 |---|---|---|---|
+| 2026-07-17 | M9-06 | Ruff; `uv run mypy app alembic tests`; unit suite; `make integration`; `git diff --check` | Passed: lint and types clean, 192 unit and 26 PostgreSQL integration tests; daily/error-triggered scheduling is durable, one transient result preserves state, two consecutive access-loss results disable monitoring, and successful verification restores active state |
+| 2026-07-17 | M9-05 | Ruff; `uv run mypy app alembic tests`; unit suite; `make integration`; `git diff --check` | Passed: 192 unit and 26 PostgreSQL integration tests; monthly budget crossings and prolonged failure episodes are durable, deduplicated, content-free, and restricted to the configured operator |
+| 2026-07-14 | M9-04 | Ruff; `uv run mypy app tests`; `make unit`; `make integration`; `git diff --check` | Passed: lint and types clean, 190 unit tests and 25 PostgreSQL integration tests passed; core success/error counters and latency observations emit structured content-free events, and redaction fails closed for unstructured, nested, exception, and variant sensitive inputs |
+| 2026-07-14 | M9-03 | Ruff; `uv run mypy app tests`; `make unit`; `make integration`; `git diff --check` | Passed: lint and types clean, 186 unit tests and 25 PostgreSQL integration tests passed; stale heartbeats and translator failures report explicitly, status queries expose only aggregates, and migration lifecycle passed |
+| 2026-07-14 | M9-02 | scoped Ruff; `uv run mypy app tests`; `make unit`; `make integration`; `git diff --check` | Passed: lint and types clean, 182 unit tests and 24 PostgreSQL integration tests passed; fresh rows survived, expired batches were bounded, dependent question data cascaded, and migration round-trip passed |
+| 2026-07-14 | M9-01 | scoped Ruff; `uv run mypy app tests`; `make unit`; `make integration`; Compose config; `git diff --check` | Passed: lint and types clean, 182 unit tests and 24 PostgreSQL integration tests passed; Compose config valid |
 | 2026-07-11 | M1-01 | `uv run ruff format --check .`; `uv run ruff check .`; `uv run mypy app tests`; `uv run pytest` | Passed: lint clean, mypy clean, 6 tests passed |
 | 2026-07-11 | M1-01 review follow-up | Acceptance gate and all entry points with `uv run --python 3.12` | Passed on CPython 3.12.13; 6 tests passed |
 | 2026-07-11 | M1-02 | Python 3.12 Ruff, mypy, and pytest gate | Passed: lint clean, mypy clean, 18 tests passed |
@@ -87,3 +92,4 @@ None.
 | 2026-07-12 | M8-03 | `uv run ruff format --check .`; `uv run ruff check .`; `uv run mypy app tests`; `uv run pytest tests/unit -q`; `make integration`; `git diff --check` | Passed: format, lint, and types clean; 165 unit + 21 integration tests passed; permanent deleted/forbidden failures, exact FLOOD_WAIT scheduling, bounded safe retry, and ambiguous-send `needs_review` behavior covered. |
 | 2026-07-12 | M8-04 | `uv run ruff format --check .`; `uv run ruff check .`; `uv run mypy app tests`; `uv run pytest tests/unit -q`; targeted PostgreSQL integration test; `git diff --check` | Passed: format, lint, and types clean; 167 unit + 3 targeted integration tests passed; exact stored sent-message targeting, duplicate confirmation idempotency, successful version append, and failed-edit state preservation covered. Full Compose integration build was unavailable because Docker Hub token access was unreachable. |
 | 2026-07-12 | M8-05 | `uv run ruff check .`; `uv run mypy app tests`; `uv run pytest tests/unit -q`; `make integration`; `git diff --check` | Passed: lint and types clean; 171 unit + 22 integration tests passed; normalized errors, original/answer links, repository-guarded safe edit retry, FLOOD_WAIT delay protection, permanent-error rejection, and ambiguous `needs_review` no-retry behavior covered. |
+| 2026-07-14 | M8-06 / M8 milestone gate | `make staging-telegram-preflight`; private-forum `SEND`, `DUPLICATE`, `CLOSED_TOPIC`, `DELETED_TARGET`, and `EDIT` evidence; duplicate SQL queries; `make check`; `git diff --check` | Passed: production-account opt-in and forum preflight; live send, duplicate confirmation, deleted-target failure, and exact-message edit; zero duplicate reply rows; privileged admin account was allowed to send in the closed topic and ADR-009 requires the passing automated permanent/no-retry evidence; 181 unit + 23 integration tests passed; deterministic evaluation perfect; Compose valid; runtime image built; outbound disabled and staging services stopped. |

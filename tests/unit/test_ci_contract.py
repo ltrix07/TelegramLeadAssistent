@@ -34,7 +34,9 @@ def test_ci_uses_test_postgresql_and_no_production_secret_references() -> None:
 
 def test_integration_compose_does_not_publish_postgresql() -> None:
     compose = Path("docker-compose.test.yml").read_text(encoding="utf-8")
+    makefile = Path("Makefile").read_text(encoding="utf-8")
 
     assert "test-postgres:" in compose
     assert "internal: true" in compose
     assert "ports:" not in compose
+    assert "-p telegramleadassistent-test -f docker-compose.test.yml" in makefile

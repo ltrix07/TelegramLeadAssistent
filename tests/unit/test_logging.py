@@ -101,4 +101,31 @@ def test_configured_secret_is_redacted_from_exception_text() -> None:
 
     output = stream.getvalue()
     assert secret not in output
-    assert "[REDACTED]" in json.loads(output)["exception"]
+    assert json.loads(output)["exception_type"] == "RuntimeError"
+
+
+def test_unstructured_messages_and_variant_sensitive_fields_fail_closed() -> None:
+    stream = StringIO()
+    configure_logging(ServiceName.OPERATOR_BOT, _settings(), stream=stream)
+    logger = logging.getLogger("third.party")
+
+    logger.warning("private message supplied outside the structured logging contract")
+    log_event(
+        logger,
+        logging.INFO,
+        "safe_event",
+        customer_message="private customer content",
+        request_body={"nestedContent": "private request content"},
+        safe_count=2,
+    )
+
+    records = [json.loads(line) for line in stream.getvalue().splitlines()]
+    output = stream.getvalue()
+    assert "private message" not in output
+    assert "private customer content" not in output
+    assert "private request content" not in output
+    assert records[0]["event"] == "unstructured_log"
+    assert records[0]["logger"] == "third.party"
+    assert records[1]["customer_message"] == "[REDACTED]"
+    assert records[1]["request_body"] == "[REDACTED]"
+    assert records[1]["safe_count"] == 2

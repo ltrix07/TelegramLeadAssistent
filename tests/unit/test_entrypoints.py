@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
+import importlib
 import subprocess
 import sys
-
-import pytest
+from pathlib import Path
 
 import app
-
-ENTRYPOINTS = ("app.maintenance",)
 
 ENTRYPOINT_ENV = {
     "app.listener": {
@@ -39,28 +37,22 @@ def test_app_package_imports() -> None:
     assert app.__doc__
 
 
-@pytest.mark.parametrize("module_name", ENTRYPOINTS)
-def test_entrypoint_starts_and_exits_cleanly(module_name: str) -> None:
-    result = subprocess.run(
-        [sys.executable, "-m", module_name],
-        check=False,
-        capture_output=True,
-        env=ENTRYPOINT_ENV[module_name],
-        text=True,
-        timeout=5,
-    )
+def test_maintenance_entrypoint_is_importable() -> None:
+    module = importlib.import_module("app.maintenance.__main__")
 
-    assert result.returncode == 0, result.stderr
-    assert result.stdout == ""
-    assert result.stderr == ""
+    assert callable(module.main)
 
 
-def test_entrypoint_fails_before_start_when_required_settings_are_missing() -> None:
+def test_entrypoint_fails_before_start_when_required_settings_are_missing(
+    tmp_path: Path,
+) -> None:
+    project_root = Path(__file__).resolve().parents[2]
     result = subprocess.run(
         [sys.executable, "-m", "app.classifier.worker"],
         check=False,
         capture_output=True,
-        env={},
+        cwd=tmp_path,
+        env={"PYTHONPATH": str(project_root)},
         text=True,
         timeout=5,
     )

@@ -19,6 +19,7 @@ from app.listener.events.incoming import (
 )
 from app.listener.events.prefilter import prefilter_message
 from app.logging import log_event
+from app.metrics import increment
 
 logger = logging.getLogger(__name__)
 MessagePersister = Callable[[IncomingMessage], Awaitable[None]]
@@ -69,17 +70,21 @@ class IngestionHandler:
         """Persist one eligible update, swallowing DB failures at the event boundary."""
         if event.chat_id is None or event.chat_id not in self._allow_list:
             return
+        increment("telegram_messages_received_total")
 
         message = map_telethon_event(event, topic_id=extract_topic_id(event.message))
         result = prefilter_message(message)
         if not result.should_classify or message.text is None:
+            increment("messages_filtered_locally_total", reason_code=result.reason_code.value)
             return
 
         try:
             await self._persist(message)
+            increment("processing_jobs_created_total")
         except asyncio.CancelledError:
             raise
         except Exception:
+            increment("processing_jobs_failed_total", error_code="DATABASE_ERROR")
             log_event(
                 logger,
                 logging.ERROR,

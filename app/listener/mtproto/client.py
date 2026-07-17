@@ -191,7 +191,10 @@ class TelethonSessionClient:
             # Reading one message proves that the current session can access history.
             await self._client.get_messages(entity, limit=1)
             permissions = await self._client.get_permissions(entity, "me")
-            can_send = bool(getattr(permissions, "send_messages", False))
+            can_send = any(
+                bool(getattr(permissions, name, False))
+                for name in ("send_messages", "is_creator", "is_admin")
+            )
             return ChatVerificationResult(
                 ChatVerificationOutcome.ACTIVE if can_send else ChatVerificationOutcome.READ_ONLY,
                 is_supergroup=is_supergroup,

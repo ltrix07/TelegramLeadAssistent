@@ -42,7 +42,10 @@ def test_settings_can_be_constructed_with_fake_credentials() -> None:
             ServiceName.MTPROTO_SESSION_CREATOR,
             ("TELEGRAM_API_ID", "TELEGRAM_API_HASH"),
         ),
-        (ServiceName.CLASSIFICATION_WORKER, ("DATABASE_URL", "OPENAI_API_KEY")),
+        (
+            ServiceName.CLASSIFICATION_WORKER,
+            ("DATABASE_URL", "OPENAI_API_KEY", "OPERATOR_TELEGRAM_USER_ID"),
+        ),
         (
             ServiceName.OPERATOR_BOT,
             ("DATABASE_URL", "OPERATOR_BOT_TOKEN", "OPERATOR_TELEGRAM_USER_ID"),
@@ -95,8 +98,9 @@ def test_empty_optional_environment_values_are_ignored(
     monkeypatch.setenv("TELEGRAM_API_ID", "")
     monkeypatch.setenv("OPERATOR_TELEGRAM_USER_ID", "")
 
-    settings = load_settings(ServiceName.CLASSIFICATION_WORKER)
+    settings = AppSettings()
 
+    assert settings.database_url is not None
     assert settings.telegram_api_id is None
     assert settings.operator_telegram_user_id is None
 
@@ -137,3 +141,15 @@ def test_classifier_prices_are_environment_configurable(
 
     assert settings.openai_classifier_input_price_per_million_usd == Decimal("0.33")
     assert settings.openai_classifier_output_price_per_million_usd == Decimal("2.75")
+
+
+def test_maintenance_schedule_is_environment_configurable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("MAINTENANCE_INTERVAL_SECONDS", "12.5")
+    monkeypatch.setenv("STALE_LOCK_TIMEOUT_SECONDS", "90")
+
+    settings = AppSettings()
+
+    assert settings.maintenance_interval_seconds == 12.5
+    assert settings.stale_lock_timeout_seconds == 90

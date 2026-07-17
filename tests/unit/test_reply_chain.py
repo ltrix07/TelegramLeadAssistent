@@ -10,6 +10,8 @@ from app.listener.reply_chain import (
     ReplyChainLoader,
     ReplyChainStopReason,
     ReplyMessage,
+    deserialize_reply_chain,
+    serialize_reply_chain,
 )
 
 
@@ -186,6 +188,21 @@ async def test_deleted_or_closed_topic_metadata_does_not_break_chain() -> None:
     assert chain.topic_title is None
     assert chain.items[-1].is_target is True
     assert chain.stop_reason is None
+
+
+@pytest.mark.asyncio
+async def test_reply_chain_snapshot_round_trip_preserves_bounded_metadata() -> None:
+    source = FakeReplyMessageSource(
+        {8: _message(8, 7, topic_id=42, top_message_id=42)},
+        topic_titles={42: "Support"},
+    )
+    chain = await ReplyChainLoader(source).get_reply_chain(-1001, 8)
+
+    restored = deserialize_reply_chain(serialize_reply_chain(chain))
+
+    assert restored == chain
+    assert restored.items[0].is_unavailable is True
+    assert restored.items[-1].is_target is True
 
 
 @pytest.mark.parametrize("max_depth", [0, 11])

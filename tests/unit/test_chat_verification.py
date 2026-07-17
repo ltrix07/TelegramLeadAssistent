@@ -18,8 +18,12 @@ from app.listener.mtproto.client import TelethonSessionClient
 
 
 class FakePermissions:
-    def __init__(self, *, send_messages: bool) -> None:
+    def __init__(
+        self, *, send_messages: bool, is_creator: bool = False, is_admin: bool = False
+    ) -> None:
         self.send_messages = send_messages
+        self.is_creator = is_creator
+        self.is_admin = is_admin
 
 
 class FakeTelethonClient:
@@ -28,10 +32,14 @@ class FakeTelethonClient:
         entity: object | BaseException,
         *,
         can_send: bool = True,
+        is_creator: bool = False,
+        is_admin: bool = False,
         topics: list[object] | BaseException | None = None,
     ) -> None:
         self.entity = entity
         self.can_send = can_send
+        self.is_creator = is_creator
+        self.is_admin = is_admin
         self.history_calls = 0
         self.topics = [] if topics is None else topics
         self.topic_calls = 0
@@ -46,7 +54,11 @@ class FakeTelethonClient:
         return []
 
     async def get_permissions(self, entity: object, participant: str) -> FakePermissions:
-        return FakePermissions(send_messages=self.can_send)
+        return FakePermissions(
+            send_messages=self.can_send,
+            is_creator=self.is_creator,
+            is_admin=self.is_admin,
+        )
 
     async def __call__(self, request: object) -> object:
         self.topic_calls += 1
@@ -109,6 +121,20 @@ async def test_read_only_group_is_normalized() -> None:
     result = await adapter.verify_chat(-1)
 
     assert result.outcome == ChatVerificationOutcome.READ_ONLY
+
+
+@pytest.mark.asyncio
+async def test_creator_is_writable_when_telethon_send_messages_flag_is_false() -> None:
+    adapter = TelethonSessionClient(
+        cast(
+            TelegramClient,
+            FakeTelethonClient(_group(), can_send=False, is_creator=True),
+        )
+    )
+
+    result = await adapter.verify_chat(-1)
+
+    assert result.outcome == ChatVerificationOutcome.ACTIVE
 
 
 @pytest.mark.asyncio

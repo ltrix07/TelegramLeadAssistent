@@ -104,3 +104,101 @@ Only decisions not already fixed by `docs/SPEC.md` belong here.
 - Consequences: Repeating the same edit remains idempotent, while delayed, permanent, and ambiguous
   sends stay fail-closed under both normal and forged callbacks.
 - SPEC impact: None
+
+### ADR-007 — Explicit production-account exception for M8 live acceptance
+
+- Date: 2026-07-14
+- Status: Accepted
+- Related task: M8-06
+- Context: The owner explicitly chose to run the short manual M8 acceptance suite with the future
+  production MTProto account instead of provisioning a second Telegram user.
+- Decision: Permit equal staging and production account IDs only when the suite runs in a private
+  test forum with disposable targets and uses the dedicated
+  `I_UNDERSTAND_THIS_SENDS_MESSAGES_FROM_PRODUCTION_ACCOUNT` opt-in. The standard opt-in remains
+  fail-closed for equal IDs.
+- Alternatives considered: Require a dedicated staging account, or remove the identity guard.
+- Consequences: Live acceptance can proceed with one working account while accidental production
+  use still requires an unmistakable explicit override. Production groups and targets remain out
+  of scope.
+- SPEC impact: M8-06 acceptance exception only; `docs/SPEC.md` remains unchanged.
+
+### ADR-008 — PostgreSQL reply-chain hand-off between listener and classifier
+
+- Date: 2026-07-14
+- Status: Accepted
+- Related task: M8-06 corrective runtime wiring
+- Context: Stage 1 durably routed jobs to `awaiting_reply_context` or
+  `awaiting_relevant_processing`, but the deployed services did not connect the existing MTProto
+  reply-chain loader, Stage 2, translation, and relevant-question persistence components.
+- Decision: Store a validated bounded reply-chain JSON snapshot on the temporary `processing_jobs`
+  row. The listener exclusively claims rows without a snapshot and loads the chain through MTProto.
+  The classifier worker exclusively claims rows with a snapshot, runs Stage 2 when required, then
+  performs translation and atomic relevant-question persistence. Both phases use transactional
+  `FOR UPDATE SKIP LOCKED`, bounded retry, stale-lock takeover, and reset attempt accounting at each
+  durable phase boundary.
+- Alternatives considered: Give the classifier MTProto session access, perform OpenAI calls in the
+  listener, add a new broker, or create permanent question-chain rows before final relevance.
+- Consequences: MTProto remains listener-only, OpenAI and translation remain classifier-owned, raw
+  snapshot data retains the processing job's 24-hour lifecycle, and a successful Stage 2 commits
+  before persistence retries so a later translation/database failure cannot cause a third
+  successful classification call.
+- SPEC impact: Implements the existing PostgreSQL-mediated classifier-to-listener reply-chain
+  boundary without changing the external workflow.
+
+### ADR-009 — Privileged-account exception for closed-topic live acceptance
+
+- Date: 2026-07-14
+- Status: Accepted
+- Related task: M8-06
+- Context: The explicitly authorized production MTProto account is the creator/administrator of
+  the private acceptance forum. Telegram accepted its direct reply in a closed named topic, so the
+  environment cannot produce a live `TOPIC_CLOSED` rejection for that account.
+- Decision: Record the privileged live result honestly and accept the closed-topic branch only
+  together with the automated integration evidence that normalizes `TOPIC_CLOSED` as permanent
+  and schedules no retry. All other M8-06 scenarios remain live requirements.
+- Alternatives considered: Provision a non-admin staging account or use a forum owned by another
+  account where the production account is an ordinary member.
+- Consequences: The suite does not misreport an administrator-allowed send as a rejection. The
+  exception is limited to the closed-topic scenario and to an explicitly authorized privileged
+  account; it does not weaken destination checks or retry behavior.
+- SPEC impact: M8-06 acceptance exception only; `docs/SPEC.md` remains unchanged.
+
+### ADR-010 — Retention boundary for structured service logs
+
+- Date: 2026-07-14
+- Status: Accepted
+- Related task: M9-02
+- Context: The application persists TTL-governed queue, relevant-question, and classification
+  metadata in PostgreSQL, but emits text-free technical logs only to standard output and has no
+  technical-log table or writable host-log volume.
+- Decision: The maintenance worker owns bounded PostgreSQL retention. The container runtime or
+  deployment log backend owns the configured 30-day technical-log retention; the application must
+  not gain Docker socket or host-log access to delete those records itself.
+- Alternatives considered: Add a duplicate PostgreSQL log table, mount host logs into the
+  maintenance container, or grant it Docker Engine access.
+- Consequences: Database cleanup remains transactional and least-privileged. Deployment validation
+  must confirm the external log backend applies `TECHNICAL_LOG_RETENTION_DAYS=30` without exposing
+  message content or secrets.
+- SPEC impact: Clarifies ownership of the existing 30-day technical-log requirement without
+  changing retention periods.
+
+### ADR-011 — Durable confirmation window for chat access loss
+
+- Date: 2026-07-17
+- Status: Accepted
+- Related task: M9-06
+- Context: A permanent-looking MTProto access result can still be caused by a short-lived Telegram
+  state or cache inconsistency. The specification requires repeated evidence but does not define
+  the confirmation interval.
+- Decision: Persist consecutive access-loss evidence per monitored chat. Keep the current status
+  after the first result and retry after five minutes; transition to `access_lost` only after the
+  second consecutive result. Successful verification resets the evidence, restores `active`, and
+  schedules the next check after 24 hours. Transport failures change no access evidence and retry
+  after five minutes.
+- Alternatives considered: Transition immediately, require operator intervention, or keep the
+  confirmation state only in listener memory.
+- Consequences: Restarts cannot erase or fabricate evidence, one temporary failure cannot disable
+  ingestion, and recovered access returns automatically. Access loss can take about five minutes
+  to confirm.
+- SPEC impact: Clarifies the existing repeated/transient-safe verification requirement without
+  changing operator workflow.

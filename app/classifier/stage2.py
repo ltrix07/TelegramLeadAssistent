@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from time import perf_counter
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,6 +15,7 @@ from app.database.queue import JobRepository
 from app.database.worker import JobDisposition
 from app.domain.enums import ProcessingJobStatus
 from app.listener.reply_chain import ReplyChain
+from app.metrics import increment, observe_duration
 
 
 class Stage2ClassificationError(RuntimeError):
@@ -78,10 +81,17 @@ class Stage2ClassificationService:
         if any(run.stage == 2 for run in runs):
             raise Stage2ClassificationError("Stage 2 has already completed")
 
-        response = await self._adapter.classify(
-            instructions=STAGE2_SYSTEM_PROMPT,
-            target_text=format_stage2_input(chain),
-        )
+        started_at = perf_counter()
+        try:
+            response = await self._adapter.classify(
+                instructions=STAGE2_SYSTEM_PROMPT,
+                target_text=format_stage2_input(chain),
+            )
+        except Exception:
+            increment("classification_api_errors_total", stage=2)
+            raise
+        increment("classification_stage2_total")
+        observe_duration("classification_latency_ms", started_at, stage=2)
         if response.result.context_required:
             raise Stage2NonFinalResultError("Stage 2 must return a final decision")
 
@@ -97,10 +107,12 @@ class Stage2ClassificationService:
             raise Stage2ClassificationError("Stage 2 has already completed")
 
         if response.result.is_relevant:
+            increment("classification_relevant_total", stage=2)
             await JobRepository(session).route(
                 job.id, ProcessingJobStatus.AWAITING_RELEVANT_PROCESSING
             )
             return JobDisposition.RETAIN
+        increment("classification_irrelevant_total", stage=2)
         await JobRepository(session).complete(job.id)
         return JobDisposition.COMPLETE
 

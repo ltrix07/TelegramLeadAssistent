@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
+from time import perf_counter
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -16,6 +17,7 @@ from app.listener.mtproto import (
     ChatVerificationTransientError,
     MTProtoOutboundClient,
 )
+from app.metrics import increment, observe_duration
 
 
 class OutboundValidationError(RuntimeError):
@@ -52,10 +54,13 @@ class SendReplyWorker:
             command = await repository.claim_send(self._worker_id)
             if command is None:
                 return False
+            increment("outbound_commands_total", command_type="send_reply")
+            started_at = perf_counter()
             try:
                 await self._validate(command)
             except TelegramOutboundError as error:
                 await self._record_error(repository, command, error)
+                increment("outbound_send_failed_total", error_code=error.code.value)
                 return True
             except ChatVerificationTransientError:
                 await self._record_error(
@@ -65,6 +70,7 @@ class SendReplyWorker:
                         TelegramErrorCode.UNKNOWN_ERROR, TelegramFailureKind.TEMPORARY
                     ),
                 )
+                increment("outbound_send_failed_total", error_code="UNKNOWN_ERROR")
                 return True
             try:
                 sent_message_id = await self._client.send_reply(
@@ -74,8 +80,11 @@ class SendReplyWorker:
                 )
             except TelegramOutboundError as error:
                 await self._record_error(repository, command, error)
+                increment("outbound_send_failed_total", error_code=error.code.value)
                 return True
             await repository.complete_send(command, sent_message_id)
+            increment("outbound_send_success_total")
+            observe_duration("outbound_send_latency_ms", started_at)
         return True
 
     async def _record_error(
@@ -84,6 +93,8 @@ class SendReplyWorker:
         command: OutboundCommand,
         error: TelegramOutboundError,
     ) -> None:
+        if error.code in {TelegramErrorCode.ACCESS_LOST, TelegramErrorCode.CHAT_WRITE_FORBIDDEN}:
+            await repository.request_chat_verification(command.telegram_chat_id)
         if error.kind is TelegramFailureKind.TEMPORARY:
             retry_delays = (15, 60, 300, 1800)
             if error.code is TelegramErrorCode.FLOOD_WAIT:

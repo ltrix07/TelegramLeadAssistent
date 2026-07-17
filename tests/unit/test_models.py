@@ -14,6 +14,7 @@ from app.domain.enums import (
 )
 
 EXPECTED_TABLES = {
+    "alert_conditions",
     "api_usage_daily",
     "application_settings",
     "bot_notifications",
@@ -21,10 +22,12 @@ EXPECTED_TABLES = {
     "detected_questions",
     "monitored_chats",
     "operator_sessions",
+    "operational_alerts",
     "outbound_commands",
     "processing_jobs",
     "question_chain_messages",
     "reply_versions",
+    "service_heartbeats",
     "translation_languages",
     "translation_manager_jobs",
 }
@@ -55,6 +58,7 @@ def test_duplicate_ingestion_and_idempotency_constraints_exist() -> None:
     )
     assert ("telegram_chat_id", "telegram_message_id") in _unique_column_sets("detected_questions")
     assert Base.metadata.tables["outbound_commands"].c.idempotency_key.unique is True
+    assert Base.metadata.tables["operational_alerts"].c.deduplication_key.unique is True
 
 
 def test_postgresql_enum_types_store_spec_values() -> None:
@@ -120,7 +124,7 @@ def test_database_and_orm_cascade_definitions_match_spec() -> None:
     assert _foreign_key_ondelete("question_chain_messages", "question_id") == "CASCADE"
     assert _foreign_key_ondelete("bot_notifications", "question_id") == "CASCADE"
     assert _foreign_key_ondelete("reply_versions", "question_id") == "CASCADE"
-    assert _foreign_key_ondelete("outbound_commands", "question_id") is None
+    assert _foreign_key_ondelete("outbound_commands", "question_id") == "CASCADE"
 
     assert "delete-orphan" in MonitoredChat.processing_jobs.property.cascade
     assert "delete-orphan" in DetectedQuestion.chain_messages.property.cascade

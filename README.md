@@ -144,7 +144,7 @@ the protected env file:
 
 ```bash
 docker compose run --rm telegram-listener \
-  python scripts/create_mtproto_session.py
+  python -m scripts.create_mtproto_session
 ```
 
 The session is stored in the dedicated `mtproto_session` volume mounted only by

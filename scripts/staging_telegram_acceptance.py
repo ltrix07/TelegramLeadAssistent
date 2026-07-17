@@ -10,6 +10,9 @@ from dataclasses import dataclass
 from app.config import ServiceName, load_startup_settings
 from app.listener.mtproto import ChatVerificationOutcome, create_telethon_client
 
+STANDARD_OPT_IN = "I_UNDERSTAND_THIS_SENDS_MESSAGES"
+PRODUCTION_ACCOUNT_OPT_IN = "I_UNDERSTAND_THIS_SENDS_MESSAGES_FROM_PRODUCTION_ACCOUNT"
+
 
 class StagingAcceptanceError(RuntimeError):
     """Raised when the environment is not safe for live staging acceptance."""
@@ -17,7 +20,7 @@ class StagingAcceptanceError(RuntimeError):
 
 @dataclass(frozen=True, slots=True)
 class StagingAcceptanceSettings:
-    """Explicit non-production identities required before any staging send."""
+    """Explicitly authorized identities required before any live acceptance send."""
 
     account_id: int
     production_account_id: int
@@ -25,7 +28,8 @@ class StagingAcceptanceSettings:
 
     @classmethod
     def from_environment(cls) -> StagingAcceptanceSettings:
-        if os.getenv("STAGING_TELEGRAM_ACCEPTANCE") != "I_UNDERSTAND_THIS_SENDS_MESSAGES":
+        opt_in = os.getenv("STAGING_TELEGRAM_ACCEPTANCE")
+        if opt_in not in (STANDARD_OPT_IN, PRODUCTION_ACCOUNT_OPT_IN):
             raise StagingAcceptanceError("Explicit staging acceptance opt-in is required")
         if os.getenv("APP_ENV") != "staging":
             raise StagingAcceptanceError("APP_ENV must be staging")
@@ -46,8 +50,13 @@ class StagingAcceptanceSettings:
             if values[name] == 0:
                 raise StagingAcceptanceError(f"{name} is required and must be non-zero")
 
-        if values["STAGING_TELEGRAM_ACCOUNT_ID"] == values["PRODUCTION_TELEGRAM_ACCOUNT_ID"]:
-            raise StagingAcceptanceError("Staging and production Telegram accounts must differ")
+        if (
+            values["STAGING_TELEGRAM_ACCOUNT_ID"] == values["PRODUCTION_TELEGRAM_ACCOUNT_ID"]
+            and opt_in != PRODUCTION_ACCOUNT_OPT_IN
+        ):
+            raise StagingAcceptanceError(
+                "Production account acceptance requires the production-account opt-in"
+            )
         return cls(
             account_id=values["STAGING_TELEGRAM_ACCOUNT_ID"],
             production_account_id=values["PRODUCTION_TELEGRAM_ACCOUNT_ID"],

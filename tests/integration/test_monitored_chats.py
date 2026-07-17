@@ -93,6 +93,53 @@ async def _exercise_persistence(database_url: str) -> None:
             active_ids = await MonitoredChatRepository(session).list_active_telegram_chat_ids()
         assert active_ids == frozenset({selected.telegram_chat_id})
 
+        access_lost = ChatVerificationResult(
+            ChatVerificationOutcome.ACCESS_LOST,
+            error_code="membership_or_access_lost",
+        )
+        async with factory.begin() as session:
+            assert await MonitoredChatRepository(session).apply_verification(first.id, access_lost)
+        async with factory() as session:
+            first_failure = await session.get(MonitoredChat, first.id)
+            assert first_failure is not None
+            assert first_failure.status == MonitoredChatStatus.ACTIVE
+            assert first_failure.consecutive_access_failures == 1
+            assert first_failure.access_lost_at is None
+
+        async with factory.begin() as session:
+            assert await MonitoredChatRepository(session).apply_verification(first.id, access_lost)
+        async with factory() as session:
+            confirmed_loss = await session.get(MonitoredChat, first.id)
+            assert confirmed_loss is not None
+            assert confirmed_loss.status == MonitoredChatStatus.ACCESS_LOST
+            assert confirmed_loss.consecutive_access_failures == 2
+            assert confirmed_loss.access_lost_at is not None
+
+        async with factory.begin() as session:
+            assert await MonitoredChatRepository(session).apply_verification(
+                first.id, ChatVerificationResult(ChatVerificationOutcome.ACTIVE)
+            )
+        async with factory() as session:
+            restored = await session.get(MonitoredChat, first.id)
+            assert restored is not None
+            assert restored.status == MonitoredChatStatus.ACTIVE
+            assert restored.consecutive_access_failures == 0
+            assert restored.access_lost_at is None
+            assert restored.last_verified_at is not None
+            assert restored.next_verification_at > restored.last_verified_at
+
+        async with factory.begin() as session:
+            repository = MonitoredChatRepository(session)
+            assert await repository.request_verification(selected.telegram_chat_id)
+            due = await repository.list_due_verification()
+            assert [chat.id for chat in due] == [first.id]
+            assert await repository.defer_verification(first.id)
+        async with factory() as session:
+            deferred = await session.get(MonitoredChat, first.id)
+            assert deferred is not None
+            assert deferred.status == MonitoredChatStatus.ACTIVE
+            assert deferred.consecutive_access_failures == 0
+
         async with factory.begin() as session:
             assert await MonitoredChatRepository(session).remove(first.id) is True
         async with factory() as session:

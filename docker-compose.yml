@@ -2,6 +2,7 @@ x-app-service: &app-service
   build:
     context: .
     dockerfile: Dockerfile
+    target: runtime
   image: telegram-lead-assistant:local
   init: true
   stop_grace_period: 10s
@@ -76,6 +77,7 @@ services:
       TELEGRAM_API_ID: ${TELEGRAM_API_ID:?Set TELEGRAM_API_ID}
       TELEGRAM_API_HASH: ${TELEGRAM_API_HASH:?Set TELEGRAM_API_HASH}
       TELEGRAM_SESSION_PATH: ${TELEGRAM_SESSION_PATH:-/sessions/work_account.session}
+      OUTBOUND_REPLIES_ENABLED: ${OUTBOUND_REPLIES_ENABLED:-false}
     volumes:
       - mtproto_session:/sessions
 
@@ -86,6 +88,9 @@ services:
       <<: *app-environment
       OPENAI_API_KEY: ${OPENAI_API_KEY:?Set OPENAI_API_KEY}
       OPENAI_CLASSIFIER_MODEL: ${OPENAI_CLASSIFIER_MODEL:-gpt-5.4-nano-2026-03-17}
+      OPERATOR_TELEGRAM_USER_ID: ${OPERATOR_TELEGRAM_USER_ID:?Set OPERATOR_TELEGRAM_USER_ID}
+      TRANSLATION_ENABLED: ${TRANSLATION_ENABLED:-true}
+      TRANSLATION_BASE_URL: http://libretranslate:5000
 
   operator-bot:
     <<: *app-service
@@ -122,7 +127,7 @@ services:
 
   maintenance-worker:
     <<: *app-service
-    command: ["sh", "-c", "python -m app.maintenance && exec sleep infinity"]
+    command: ["python", "-m", "app.maintenance"]
 
 networks:
   backend:

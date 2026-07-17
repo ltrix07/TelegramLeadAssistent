@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import sys
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
@@ -60,6 +61,24 @@ _STANDARD_LOG_RECORD_FIELDS = frozenset(logging.makeLogRecord({}).__dict__) | {
     "asctime",
     "message",
 }
+_SENSITIVE_FIELD_PARTS = frozenset(
+    {
+        "answer",
+        "body",
+        "content",
+        "draft",
+        "hash",
+        "key",
+        "message",
+        "phone",
+        "prompt",
+        "secret",
+        "session",
+        "text",
+        "token",
+        "translation",
+    }
+)
 
 
 def new_correlation_id() -> str:
@@ -103,7 +122,8 @@ class JsonFormatter(logging.Formatter):
 
     def format(self, record: LogRecord) -> str:
         """Format one record without exposing configured secrets or text fields."""
-        event = getattr(record, "event", record.getMessage())
+        structured_event = getattr(record, "event", None)
+        event = structured_event if isinstance(structured_event, str) else "unstructured_log"
         payload: dict[str, Any] = {
             "timestamp": datetime.fromtimestamp(record.created, UTC).isoformat(),
             "level": record.levelname,
@@ -111,15 +131,24 @@ class JsonFormatter(logging.Formatter):
             "event": self._sanitize_value(event),
             "correlation_id": get_correlation_id(),
         }
+        if structured_event is None:
+            payload["logger"] = record.name
         for key, value in record.__dict__.items():
             if key not in _STANDARD_LOG_RECORD_FIELDS and key != "event":
                 payload[key] = self._sanitize_field(key, value)
         if record.exc_info:
-            payload["exception"] = self._sanitize_value(self.formatException(record.exc_info))
+            exception_type = record.exc_info[0]
+            payload["exception_type"] = (
+                exception_type.__name__ if exception_type is not None else "UnknownException"
+            )
         return json.dumps(payload, default=str, ensure_ascii=False, separators=(",", ":"))
 
     def _sanitize_field(self, key: str, value: object) -> object:
-        if key.lower() in _SENSITIVE_FIELDS:
+        normalized_key = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "_", key).lower().replace("-", "_")
+        key_parts = frozenset(normalized_key.split("_"))
+        if normalized_key.endswith("_id") and "session" not in key_parts:
+            return self._sanitize_value(value)
+        if normalized_key in _SENSITIVE_FIELDS or key_parts & _SENSITIVE_FIELD_PARTS:
             return _REDACTED
         return self._sanitize_value(value)
 

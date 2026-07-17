@@ -797,24 +797,25 @@ Acceptance:
 - operator cannot force immediate FLOOD_WAIT bypass;
 - permanent error has no blind retry action.
 
-### [ ] M8-06 Staging Telegram acceptance suite
+### [x] M8-06 Staging Telegram acceptance suite
 
 Dependencies: M8-01 through M8-05.
 
 Scope:
 
-- document and execute tests with test account/group/forum;
+- document and execute tests with an explicitly authorized account and private test group/forum;
 - cover send, duplicate confirmation, closed topic, deleted target and edit.
 
 Acceptance:
 
-- no production account used;
+- account identity matches the declared acceptance account; production-account use requires the
+  dedicated production-account opt-in;
 - duplicate replies equal zero;
 - M8 full gate passes.
 
 ## M9 — Maintenance, retention and observability
 
-### [ ] M9-01 Maintenance scheduler and stale locks
+### [x] M9-01 Maintenance scheduler and stale locks
 
 Dependencies: M8 complete.
 
@@ -830,7 +831,7 @@ Acceptance:
 - stale lock is recovered once;
 - maintenance restart is safe.
 
-### [ ] M9-02 Retention cleanup
+### [x] M9-02 Retention cleanup
 
 Dependencies: M9-01.
 
@@ -847,7 +848,7 @@ Acceptance:
 - cascades remove chain/versions;
 - cleanup does not lock entire table for long batch.
 
-### [ ] M9-03 Health and status reporting
+### [x] M9-03 Health and status reporting
 
 Dependencies: M2-03, M9-01.
 
@@ -862,7 +863,7 @@ Acceptance:
 - health failures are explicit;
 - status contains no sensitive content.
 
-### [ ] M9-04 Structured metrics and redaction audit
+### [x] M9-04 Structured metrics and redaction audit
 
 Dependencies: M1-03, M9-03.
 
@@ -877,7 +878,7 @@ Acceptance:
 - no message/draft/secret in captured logs;
 - core latency and success metrics are available.
 
-### [ ] M9-05 Budget and prolonged-failure alerts
+### [x] M9-05 Budget and prolonged-failure alerts
 
 Dependencies: M4-04, M9-03.
 
@@ -893,7 +894,7 @@ Acceptance:
 - recovery notification is optional but consistent;
 - alerts are operator-only.
 
-### [ ] M9-06 Daily chat access verification
+### [x] M9-06 Daily chat access verification
 
 Dependencies: M2-05, M9-01.
 

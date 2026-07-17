@@ -5,7 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from datetime import datetime
 from enum import StrEnum
-from typing import Protocol
+from typing import Any, Protocol
+
+from pydantic import BaseModel, ConfigDict
 
 
 class ReplyChainStopReason(StrEnum):
@@ -59,6 +61,90 @@ class ReplyChain:
     reply_to_top_message_id: int | None = None
     topic_title: str | None = None
     stop_reason: ReplyChainStopReason | None = None
+
+
+class ReplyChainItemSnapshot(BaseModel):
+    """Validated JSON representation of one temporary reply-chain item."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    telegram_message_id: int
+    reply_to_message_id: int | None
+    topic_id: int | None
+    reply_to_top_message_id: int | None
+    author_telegram_id: int | None
+    author_display_name: str | None
+    telegram_created_at: datetime | None
+    text: str | None
+    is_target: bool
+    is_unavailable: bool
+
+
+class ReplyChainSnapshot(BaseModel):
+    """Validated temporary PostgreSQL hand-off between listener and classifier."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    chat_id: int
+    items: tuple[ReplyChainItemSnapshot, ...]
+    topic_id: int | None
+    reply_to_top_message_id: int | None
+    topic_title: str | None
+    stop_reason: ReplyChainStopReason | None
+
+
+def serialize_reply_chain(chain: ReplyChain) -> dict[str, Any]:
+    """Serialize a bounded chain into JSON-safe validated data."""
+    snapshot = ReplyChainSnapshot(
+        chat_id=chain.chat_id,
+        items=tuple(
+            ReplyChainItemSnapshot(
+                telegram_message_id=item.telegram_message_id,
+                reply_to_message_id=item.reply_to_message_id,
+                topic_id=item.topic_id,
+                reply_to_top_message_id=item.reply_to_top_message_id,
+                author_telegram_id=item.author_telegram_id,
+                author_display_name=item.author_display_name,
+                telegram_created_at=item.telegram_created_at,
+                text=item.text,
+                is_target=item.is_target,
+                is_unavailable=item.is_unavailable,
+            )
+            for item in chain.items
+        ),
+        topic_id=chain.topic_id,
+        reply_to_top_message_id=chain.reply_to_top_message_id,
+        topic_title=chain.topic_title,
+        stop_reason=chain.stop_reason,
+    )
+    return snapshot.model_dump(mode="json")
+
+
+def deserialize_reply_chain(value: dict[str, Any]) -> ReplyChain:
+    """Restore and validate a temporary reply-chain snapshot."""
+    snapshot = ReplyChainSnapshot.model_validate(value)
+    return ReplyChain(
+        chat_id=snapshot.chat_id,
+        items=tuple(
+            ReplyChainItem(
+                telegram_message_id=item.telegram_message_id,
+                reply_to_message_id=item.reply_to_message_id,
+                topic_id=item.topic_id,
+                reply_to_top_message_id=item.reply_to_top_message_id,
+                author_telegram_id=item.author_telegram_id,
+                author_display_name=item.author_display_name,
+                telegram_created_at=item.telegram_created_at,
+                text=item.text,
+                is_target=item.is_target,
+                is_unavailable=item.is_unavailable,
+            )
+            for item in snapshot.items
+        ),
+        topic_id=snapshot.topic_id,
+        reply_to_top_message_id=snapshot.reply_to_top_message_id,
+        topic_title=snapshot.topic_title,
+        stop_reason=snapshot.stop_reason,
+    )
 
 
 class ReplyMessageSource(Protocol):

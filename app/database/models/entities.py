@@ -52,10 +52,19 @@ class MonitoredChat(Base):
 
     __tablename__ = "monitored_chats"
     __table_args__ = (
+        CheckConstraint(
+            "consecutive_access_failures >= 0",
+            name="access_failures_non_negative",
+        ),
         Index(
             "idx_monitored_chats_active",
             "telegram_chat_id",
             postgresql_where=sql_text("status = 'active'"),
+        ),
+        Index(
+            "idx_monitored_chats_verification_due",
+            "next_verification_at",
+            postgresql_where=sql_text("status <> 'disabled'"),
         ),
     )
 
@@ -85,6 +94,12 @@ class MonitoredChat(Base):
         DateTime(timezone=True), nullable=False, server_default=sql_text("NOW()")
     )
     last_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    next_verification_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=sql_text("NOW()")
+    )
+    consecutive_access_failures: Mapped[int] = mapped_column(
+        SmallInteger, nullable=False, server_default=sql_text("0")
+    )
     last_message_received_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     access_lost_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_error_code: Mapped[str | None] = mapped_column(String(100))
@@ -119,6 +134,25 @@ class ProcessingJob(Base):
             "created_at",
             postgresql_where=sql_text("status IN ('pending', 'retry')"),
         ),
+        Index(
+            "idx_processing_jobs_chain_load",
+            "next_attempt_at",
+            "created_at",
+            postgresql_where=sql_text(
+                "status IN ('awaiting_relevant_processing', 'awaiting_reply_context') "
+                "AND reply_chain_snapshot IS NULL"
+            ),
+        ),
+        Index(
+            "idx_processing_jobs_downstream",
+            "next_attempt_at",
+            "created_at",
+            postgresql_where=sql_text(
+                "status IN ('awaiting_relevant_processing', 'awaiting_reply_context') "
+                "AND reply_chain_snapshot IS NOT NULL"
+            ),
+        ),
+        Index("idx_processing_jobs_expiry", "expires_at"),
     )
 
     id: Mapped[PythonUUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
@@ -153,6 +187,7 @@ class ProcessingJob(Base):
     locked_by: Mapped[str | None] = mapped_column(String(100))
     last_error_code: Mapped[str | None] = mapped_column(String(100))
     last_error_message: Mapped[str | None] = mapped_column(Text)
+    reply_chain_snapshot: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=sql_text("NOW()")
     )
@@ -177,6 +212,7 @@ class ClassificationRun(Base):
             "stage",
             name="uq_classification_runs_message_stage",
         ),
+        Index("idx_classification_runs_created_at", "created_at"),
     )
 
     id: Mapped[PythonUUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
@@ -406,7 +442,9 @@ class OutboundCommand(Base):
 
     id: Mapped[PythonUUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     question_id: Mapped[PythonUUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("detected_questions.id"), nullable=False
+        UUID(as_uuid=True),
+        ForeignKey("detected_questions.id", ondelete="CASCADE"),
+        nullable=False,
     )
     command_type: Mapped[str] = mapped_column(String(20), nullable=False)
     reply_version: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -536,6 +574,70 @@ class ApplicationSetting(Base):
 
     key: Mapped[str] = mapped_column(String(100), primary_key=True)
     value: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=sql_text("NOW()")
+    )
+
+
+class ServiceHeartbeat(Base):
+    """Last database-visible liveness signal from an application service."""
+
+    __tablename__ = "service_heartbeats"
+
+    service: Mapped[str] = mapped_column(String(50), primary_key=True)
+    checked_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=sql_text("NOW()")
+    )
+
+
+class AlertCondition(Base):
+    """Durable start time for a currently failing monitored condition."""
+
+    __tablename__ = "alert_conditions"
+
+    condition_key: Mapped[str] = mapped_column(String(100), primary_key=True)
+    failing_since: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=sql_text("NOW()")
+    )
+
+
+class OperationalAlert(Base):
+    """Content-free, idempotent operator alert delivery record."""
+
+    __tablename__ = "operational_alerts"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('pending', 'sending', 'retry', 'sent', 'failed')",
+            name="status_valid",
+        ),
+        Index(
+            "idx_operational_alerts_claim",
+            "next_attempt_at",
+            "created_at",
+            postgresql_where=sql_text("status IN ('pending', 'retry')"),
+        ),
+    )
+
+    id: Mapped[PythonUUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    deduplication_key: Mapped[str] = mapped_column(String(160), nullable=False, unique=True)
+    alert_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    details: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, nullable=False, server_default=sql_text("'{}'::jsonb")
+    )
+    operator_telegram_user_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, server_default="pending")
+    attempt_count: Mapped[int] = mapped_column(
+        SmallInteger, nullable=False, server_default=sql_text("0")
+    )
+    next_attempt_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=sql_text("NOW()")
+    )
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_error: Mapped[str | None] = mapped_column(String(100))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=sql_text("NOW()")
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=sql_text("NOW()")
     )

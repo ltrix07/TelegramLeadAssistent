@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
@@ -110,12 +111,15 @@ def test_chat_picker_accepts_groups_but_not_channels() -> None:
 @pytest.mark.asyncio
 async def test_run_bot_starts_long_polling_without_network(monkeypatch: pytest.MonkeyPatch) -> None:
     start_polling = AsyncMock()
+    worker_started = asyncio.Event()
+    alert_worker_started = asyncio.Event()
 
     class FakeDispatcher:
         def resolve_used_update_types(self) -> list[str]:
             return ["message"]
 
         async def start_polling(self, *args: object, **kwargs: object) -> None:
+            await asyncio.sleep(0)
             await start_polling(*args, **kwargs)
 
     class FakeBot:
@@ -128,9 +132,29 @@ async def test_run_bot_starts_long_polling_without_network(monkeypatch: pytest.M
         async def __aexit__(self, *args: object) -> None:
             return None
 
+    class FakeNotificationWorker:
+        def __init__(self, *args: object) -> None:
+            pass
+
+        async def run_forever(self) -> None:
+            worker_started.set()
+            await asyncio.Event().wait()
+
+    class FakeAlertWorker:
+        def __init__(self, *args: object) -> None:
+            pass
+
+        async def run_forever(self) -> None:
+            alert_worker_started.set()
+            await asyncio.Event().wait()
+
     monkeypatch.setattr("app.bot.application.create_dispatcher", lambda *_: FakeDispatcher())
     monkeypatch.setattr("app.bot.application.Bot", FakeBot)
+    monkeypatch.setattr("app.bot.application.BotNotificationWorker", FakeNotificationWorker)
+    monkeypatch.setattr("app.bot.application.OperationalAlertWorker", FakeAlertWorker)
 
     await run_bot("123456:fake-token", 42, AsyncMock())
 
     start_polling.assert_awaited_once()
+    assert worker_started.is_set()
+    assert alert_worker_started.is_set()

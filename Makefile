@@ -1,6 +1,6 @@
 UV := uv
 PYTHON := 3.12
-COMPOSE_TEST := docker compose -f docker-compose.test.yml
+COMPOSE_TEST := docker compose -p telegramleadassistent-test -f docker-compose.test.yml
 
 .PHONY: sync format format-check lint typecheck unit evaluate integration integration-direct \
 	staging-telegram-preflight compose-config docker-build check ci
@@ -37,7 +37,13 @@ integration-direct:
 		$(UV) run --python $(PYTHON) pytest -q tests/integration
 
 staging-telegram-preflight:
-	$(UV) run --python $(PYTHON) python -m scripts.staging_telegram_acceptance
+	docker compose run --rm \
+		-e STAGING_TELEGRAM_ACCEPTANCE \
+		-e STAGING_TELEGRAM_ACCOUNT_ID \
+		-e PRODUCTION_TELEGRAM_ACCOUNT_ID \
+		-e STAGING_TELEGRAM_FORUM_CHAT_ID \
+		telegram-listener \
+		python -m scripts.staging_telegram_acceptance
 
 compose-config:
 	POSTGRES_PASSWORD=test-only-password \

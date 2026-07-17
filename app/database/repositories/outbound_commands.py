@@ -7,12 +7,12 @@ from datetime import datetime, timedelta
 from typing import cast
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.database.models import DetectedQuestion, MonitoredChat, OutboundCommand, ReplyVersion
-from app.domain.enums import OutboundCommandStatus, QuestionStatus
+from app.domain.enums import MonitoredChatStatus, OutboundCommandStatus, QuestionStatus
 
 
 class ConfirmationUnavailableError(Exception):
@@ -64,6 +64,52 @@ class OutboundCommandRepository:
 
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
+
+    async def request_chat_verification(self, telegram_chat_id: int) -> bool:
+        """Schedule a prompt access check after a relevant outbound error."""
+        changed_id = await self._session.scalar(
+            update(MonitoredChat)
+            .where(
+                MonitoredChat.telegram_chat_id == telegram_chat_id,
+                MonitoredChat.status != MonitoredChatStatus.DISABLED,
+            )
+            .values(next_verification_at=func.now(), updated_at=func.now())
+            .returning(MonitoredChat.id)
+        )
+        return changed_id is not None
+
+    async def recover_stale(self, stale_before: datetime) -> list[UUID]:
+        """Move ambiguous expired outbound claims to manual review exactly once."""
+        statement = (
+            update(OutboundCommand)
+            .where(
+                OutboundCommand.status == OutboundCommandStatus.PROCESSING,
+                OutboundCommand.locked_at < stale_before,
+            )
+            .values(
+                status=OutboundCommandStatus.NEEDS_REVIEW,
+                locked_at=None,
+                locked_by=None,
+                last_error_code="STALE_LOCK_RECOVERED",
+                last_error_message="STALE_LOCK_RECOVERED",
+            )
+            .returning(
+                OutboundCommand.id, OutboundCommand.question_id, OutboundCommand.command_type
+            )
+        )
+        recovered = list((await self._session.execute(statement)).tuples())
+        send_question_ids = [
+            question_id
+            for _, question_id, command_type in recovered
+            if command_type == "send_reply"
+        ]
+        if send_question_ids:
+            await self._session.execute(
+                update(DetectedQuestion)
+                .where(DetectedQuestion.id.in_(send_question_ids))
+                .values(status=QuestionStatus.SEND_FAILED, updated_at=func.now())
+            )
+        return [command_id for command_id, _, _ in recovered]
 
     async def list_failures(self, *, limit: int = 50) -> tuple[OutboundFailure, ...]:
         """List current failures without exposing stored reply text or raw errors."""
