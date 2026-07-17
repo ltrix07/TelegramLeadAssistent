@@ -1,97 +1,128 @@
-# Codex Prompt Pack for Telegram Community Lead Assistant
+# Telegram Community Lead Assistant
 
-Готовый набор для последовательной реализации `docs/SPEC.md` с Codex.
+> Operator-assisted lead discovery for professional Telegram communities — find genuine
+> questions worth answering, never spam.
 
-## Файлы
+[![Python](https://img.shields.io/badge/python-3.12+-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Type checked: mypy strict](https://img.shields.io/badge/mypy-strict-2A6DB2)](http://mypy-lang.org/)
+[![Lint: ruff](https://img.shields.io/badge/lint-ruff-D7FF64?logo=ruff&logoColor=black)](https://github.com/astral-sh/ruff)
+[![Tests](https://img.shields.io/badge/tests-203%20unit%20%2B%2027%20integration-4c1)](#testing)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-- `AGENTS.md` — постоянный инженерный контракт Codex.
-- `PROMPTING_SYSTEM.md` — рабочий цикл.
-- `docs/SPEC.md` — согласованная спецификация.
-- `docs/BACKLOG.md` — атомарная очередь M1–M10.
-- `docs/PROGRESS.md` — текущее состояние.
-- `docs/DECISIONS.md` — ADR log.
-- `prompts/00_REPOSITORY_AUDIT.md` — первый turn без изменений.
-- `prompts/01_NEXT_TASK.md` — повторяемый prompt реализации.
-- `prompts/02_REVIEW_CURRENT_TASK.md` — review.
-- `prompts/03_FIX_REVIEW_FINDINGS.md` — исправление findings.
-- `prompts/04_MILESTONE_GATE.md` — закрытие milestone.
-- `prompts/05_RELEASE_GATE.md` — финальный gate.
-- `prompts/06_RECOVER_CONTEXT.md` — новая сессия/восстановление.
-- `prompts/07_BUGFIX.md` — отдельный bugfix.
-- `prompts/08_IMPLEMENT_SPEC_CHANGE.md` — контролируемое изменение scope.
+A self-hosted system that monitors selected Telegram groups through a working account,
+uses an LLM to detect substantive professional questions (technical, operational,
+analytics, strategy, e-commerce), and surfaces them to a single operator through a
+private bot. The operator reviews the original reply-chain with a local Russian
+translation, writes an answer by hand, previews it, and — only after explicit
+confirmation — the reply is posted from the working account.
 
-## Самый простой сценарий
+**Nothing is ever sent automatically.** No auto-generated answers, no mass messaging, no
+channel scraping. The human is always in the loop.
 
-1. Распаковать файлы в корень нового репозитория.
-2. Создать Git checkpoint.
-3. Открыть Codex в корне.
-4. Передать содержимое `prompts/00_REPOSITORY_AUDIT.md`.
-5. Передать `prompts/01_NEXT_TASK.md`.
-6. После реализации выполнить review через `prompts/02_REVIEW_CURRENT_TASK.md`.
-7. При findings использовать `prompts/03_FIX_REVIEW_FINDINGS.md`.
-8. Повторять до конца milestone.
-9. Выполнить `prompts/04_MILESTONE_GATE.md`.
-10. Перед rollout выполнить `prompts/05_RELEASE_GATE.md`.
+---
 
-Не проси Codex «реализовать всю SPEC». Повторяй один и тот же NEXT_TASK prompt: состояние хранится в BACKLOG/PROGRESS, а не в истории чата.
+## Why it exists
 
-## Локальная разработка
+Advertising directly in professional communities reads as spam and destroys trust. The
+effective path is to participate first: answer real questions well, build recognition, and
+only then — where the community allows — make a careful offer. Doing that manually across
+several busy chats is expensive. This assistant does the watching and triage so a human
+can focus on writing good answers.
 
-Проект требует Python 3.12+ и использует `uv` для установки зависимостей и
-фиксации их версий:
+## Features
+
+- **MTProto monitoring** of groups, supergroups, and forum supergroups (channels are never monitored).
+- **Two-stage LLM classification** — stage 1 on the message alone; stage 2 with reply
+  context only when required. Strict OpenAI Structured Outputs, max two calls per message.
+- **Conservative local prefilter** drops obvious noise before any paid API call.
+- **Reliable PostgreSQL queue** — `FOR UPDATE SKIP LOCKED`, at-least-once delivery,
+  idempotent handlers, bounded retry, stale-lock recovery. Handles 10k+ messages/day.
+- **Reply-chain context** up to 10 messages, with **local translation to Russian** via
+  self-hosted LibreTranslate (no per-character billing; `en`/`ru` always on, more on demand).
+- **Operator bot** (aiogram) — leads with chat/topic/author/category/confidence, original +
+  translation, open-original links, and a manual draft → preview → confirm → send/edit flow.
+- **Controlled outbound** — replies posted by the working account only after confirmation;
+  idempotent send, forum-topic aware, no auto-retry on ambiguous results.
+- **Operations built in** — health/status, structured content-free metrics, budget alerts
+  ($5/$8/$10), daily chat-access verification, TTL retention (24h temp / 60d relevant /
+  30d logs), and an encrypted backup/restore runbook.
+- **Privacy by design** — irrelevant text deleted immediately; message bodies, drafts,
+  prompts, and secrets never logged; single-operator authorization on every handler.
+- **Safe staged rollout** — feature flags gate monitoring, notifications, and outbound with
+  outbound disabled by default.
+
+## Architecture
+
+Six single-purpose processes share one code base and a PostgreSQL database that doubles as
+the job queue. Only `telegram-listener` holds the MTProto session; only
+`classification-worker` calls OpenAI and the translator.
+
+```mermaid
+flowchart LR
+    Operator(("Operator"))
+    subgraph TG["Telegram"]
+      MT["MTProto API"]
+      BOT["Bot API"]
+    end
+    OAI["OpenAI<br/>Structured classifier"]
+
+    subgraph VPS["VPS · Docker Compose"]
+      L["telegram-listener"]
+      C["classification-worker"]
+      B["operator-bot"]
+      TM["translation-manager"]
+      LT["LibreTranslate"]
+      M["maintenance-worker"]
+      DB[("PostgreSQL<br/>db + queue")]
+    end
+
+    L <--> MT
+    L --> DB
+    C --> DB
+    C --> OAI
+    C --> LT
+    C -. reply-chain via DB .-> L
+    B <--> BOT
+    Operator <--> BOT
+    B --> DB
+    TM --> DB
+    TM --> LT
+    M --> DB
+```
+
+**Pipeline:** listener ingests → prefilter → queue → stage-1 classify → (reply-chain +
+stage-2 if needed) → translate → operator notification → manual draft → confirm → send.
+
+## Tech stack
+
+Python 3.12 · asyncio · Telethon (MTProto) · aiogram 3 (bot) · OpenAI Responses API ·
+SQLAlchemy 2 async + Alembic · PostgreSQL 17 · LibreTranslate · Docker Compose ·
+ruff · mypy (strict) · pytest.
+
+## Quick start (local development)
+
+Requires Python 3.12+ and [`uv`](https://github.com/astral-sh/uv).
 
 ```bash
 uv sync --all-groups
-```
 
-Базовые проверки:
+# Fast checks (network-free)
+make format-check lint typecheck unit evaluate
 
-```bash
-make format-check
-make lint
-make typecheck
-make unit
-make evaluate
+# Full gate: PostgreSQL integration tests, Compose validation, image build
 make integration
+make check
 ```
 
-`make evaluate` runs the versioned 100-message classification dataset with a deterministic,
-network-free fake and prints aggregate precision/recall metrics. A manual live prompt evaluation is
-available only by explicit opt-in and reads the API key from the environment without printing or
-persisting it:
+`make evaluate` runs a versioned 100-message classification dataset against a deterministic
+fake (no network) and prints precision/recall. A live evaluation is opt-in and reads the
+API key from the environment without printing or storing it:
 
 ```bash
 OPENAI_API_KEY=... uv run python -m app.classifier.evaluation --live
 ```
 
-Полный локальный M1 gate, включая PostgreSQL integration tests, Compose validation и
-сборку runtime image:
-
-```bash
-make check
-```
-
-`make integration` самостоятельно создаёт изолированный test stack без опубликованного
-порта PostgreSQL и удаляет его после завершения. Если тестовая PostgreSQL уже доступна,
-можно использовать `TEST_DATABASE_URL=... make integration-direct`.
-
-Live M8 outbound acceptance is documented in
-[`docs/STAGING_TELEGRAM_ACCEPTANCE.md`](docs/STAGING_TELEGRAM_ACCEPTANCE.md). Its preflight is
-explicitly opt-in, verifies a dedicated non-production MTProto account and writable test forum,
-and performs no Telegram mutations itself.
-
-### Ingestion load test
-
-PostgreSQL integration tests include a synthetic listener-path load test with 10,000 unique
-messages and 250 duplicate deliveries. It verifies the exact durable-job count, duplicate
-protection, event-loop progress during ingestion, enqueue throughput, and oldest-job age.
-
-The M3 gate run on 2026-07-12 completed the load in 21.825 seconds at 458.2 messages/second;
-the oldest job was 21.822 seconds old when measured. This exceeds the required equivalent of
-10,000 messages per day (about 0.116 messages/second) without lost or duplicate jobs. Results
-are machine-dependent; rerun the test with `make integration` for the current environment.
-
-Начальные точки запуска сервисов безопасно завершаются без сетевых подключений:
+Service entry points start and shut down cleanly without network access:
 
 ```bash
 uv run python -m app.listener
@@ -101,59 +132,87 @@ uv run python -m app.translation.manager
 uv run python -m app.maintenance
 ```
 
-## Docker Compose foundation
-
-Create a local env file and replace every blank or `change-me` value with
-development-only placeholders. Real Telegram/OpenAI credentials are not required for the
-foundation health check.
+## Running with Docker Compose
 
 ```bash
-cp .env.example .env
+cp .env.example .env    # fill in real values, see Configuration
 docker compose up -d --build --wait
-docker compose ps
-docker compose down
-```
-
-PostgreSQL and LibreTranslate are available only to containers on the internal `backend`
-network; neither database port 5432 nor translation port 5000 is published on the host.
-LibreTranslate loads only the required English and Russian languages and stores downloaded
-models in the persistent `libretranslate_models` volume. Its first start can take several
-minutes while those models are downloaded.
-
-Verify translator health and model-volume persistence without exposing its API:
-
-```bash
-docker compose up -d --wait libretranslate
-docker compose exec libretranslate python -c \
-  "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:5000/health').read().decode())"
-docker compose config | grep -A 20 '^  libretranslate:'
-docker compose rm -sf libretranslate
-docker compose up -d --wait libretranslate
-docker compose volume inspect telegramleadassistent_libretranslate_models
-```
-
-Run migrations as a separate one-shot command after PostgreSQL is healthy:
-
-```bash
 docker compose run --rm maintenance-worker alembic upgrade head
+docker compose run --rm telegram-listener python -m scripts.create_mtproto_session
 ```
 
-Create the work account MTProto session interactively after setting
-`TELEGRAM_API_ID`, `TELEGRAM_API_HASH`, and the optional `TELEGRAM_SESSION_PATH` in
-the protected env file:
+PostgreSQL (5432) and LibreTranslate (5000) are only reachable on the internal `backend`
+network — neither is published on the host.
 
-```bash
-docker compose run --rm telegram-listener \
-  python -m scripts.create_mtproto_session
+- **Server deployment checklist:** [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)
+- **Staged go-live (shadow → notification → controlled reply):** [`docs/GO_LIVE_RUNBOOK.md`](docs/GO_LIVE_RUNBOOK.md)
+- **Backup & restore:** [`docs/BACKUP_RESTORE.md`](docs/BACKUP_RESTORE.md)
+
+## Configuration
+
+All configuration is environment-based and validated at startup (`app/config.py`); missing
+required values fail before any network access. See [`.env.example`](.env.example) for the
+full list. Key groups:
+
+| Group | Variables |
+|---|---|
+| Feature flags | `MONITORING_ENABLED`, `NOTIFICATIONS_ENABLED`, `OUTBOUND_REPLIES_ENABLED`, `TRANSLATION_ENABLED` |
+| Telegram | `TELEGRAM_API_ID`, `TELEGRAM_API_HASH`, `TELEGRAM_SESSION_PATH`, `OPERATOR_BOT_TOKEN`, `OPERATOR_TELEGRAM_USER_ID` |
+| OpenAI | `OPENAI_API_KEY`, `OPENAI_CLASSIFIER_MODEL`, `OPENAI_CLASSIFIER_*_PRICE_PER_MILLION_USD` |
+| Retention | `MESSAGE_RETENTION_DAYS` (60), `TEMPORARY_MESSAGE_TTL_HOURS` (24), `TECHNICAL_LOG_RETENTION_DAYS` (30) |
+| Budget alerts | `API_INFO/WARNING/CRITICAL_THRESHOLD_USD` (5/8/10) |
+
+`OUTBOUND_REPLIES_ENABLED` defaults to `false`: the system can watch and notify without any
+risk of sending until you explicitly enable it. Flags are read at container start.
+
+## Testing
+
+| Suite | What it covers |
+|---|---|
+| `make unit` | 203 tests — domain logic, config, workers, bot flows, redaction (network-free) |
+| `make integration` | 27 tests on an isolated PostgreSQL — queue semantics, migrations, persistence, load |
+| `make evaluate` | 100-fixture classifier evaluation, deterministic fake (precision/recall/accuracy = 1.000) |
+
+Automated tests never call real Telegram, OpenAI, or LibreTranslate. Live Telegram
+acceptance is documented and opt-in only ([`docs/STAGING_TELEGRAM_ACCEPTANCE.md`](docs/STAGING_TELEGRAM_ACCEPTANCE.md)).
+
+## Project structure
+
+```
+app/
+  listener/      MTProto ingestion, reply-chain, outbound send/edit (session owner)
+  classifier/    OpenAI adapter, stage-1/stage-2, usage accounting, evaluation
+  translation/   LibreTranslate client, language management, controlled reload
+  bot/           aiogram operator bot: chats, leads, drafts, status, alerts
+  maintenance/   scheduler, retention cleanup, stale-lock recovery, chat verification
+  database/      SQLAlchemy models, queue repository, health
+  domain/        enums, services, errors
+  rollout/       shadow-mode reporting
+alembic/         migrations
+docs/            SPEC, backlog, decisions (ADRs), runbooks
+scripts/         session creation, health check, shadow report
 ```
 
-The session is stored in the dedicated `mtproto_session` volume mounted only by
-`telegram-listener`. The script validates the authenticated account with `get_me()`
-and prints only its Telegram user ID and display name.
+## Security & privacy
 
-For a local database configured through `DATABASE_URL`:
+- Single-operator authorization enforced on every bot update and callback.
+- Never logged: message content, translations, drafts/replies, prompts, bot token,
+  OpenAI key, phone number, `api_hash`, MTProto session.
+- PostgreSQL and LibreTranslate ports are never published to the host.
+- The operator bot has no Docker socket access; the translation manager reloads models
+  through a locked-down PID-namespace control plane (see ADR-005).
+- Only relevant leads are retained (60 days); irrelevant text is deleted immediately.
 
-```bash
-uv run alembic upgrade head
-uv run alembic downgrade -1
-```
+## Project status
+
+MVP is code-complete and certified (M1–M9 done, M10 controlled rollout in progress). The
+remaining work is operational staged rollout on live community chats — see
+[`docs/GO_LIVE_RUNBOOK.md`](docs/GO_LIVE_RUNBOOK.md) and [`docs/BACKLOG.md`](docs/BACKLOG.md).
+
+Engineering conventions and the task-driven build workflow are described in
+[`AGENTS.md`](AGENTS.md) and [`PROMPTING_SYSTEM.md`](PROMPTING_SYSTEM.md).
+
+## License
+
+Released under the [MIT License](LICENSE).
+</content>

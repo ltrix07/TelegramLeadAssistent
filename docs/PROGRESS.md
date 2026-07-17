@@ -31,15 +31,23 @@ boundaries; and exposed all active flag states in operator status output.
 
 ## Known blockers
 
-M10-02 implementation and automated verification are ready. Completion still requires selecting one
-staging/production chat, running a real shadow observation window with notifications and outbound
-disabled, and saving the resulting stability report. This is an external production action and was
-not performed automatically.
+M10-02 shadow mode is running for the single active chat with notifications and outbound disabled.
+The first real window on 2026-07-17 proved zero sends, zero outbound commands, healthy queues, and
+no expired temporary rows, but contained no classified messages. The saved report is therefore
+inconclusive; completion requires regenerating it after real channel traffic is classified.
+
+Root cause of the empty window: the only active chat is the M8 test group `-1004321050630`
+(`testgroupformybot2`), whose `last_message_received_at` is null — it has no live traffic. M10-02
+through M10-06 are operational rollout gates that require a real community chat and real messages;
+they cannot be closed by code changes. The operator will add real chats after joining them. The
+full path to reach the target controlled-reply mode is documented in `docs/GO_LIVE_RUNBOOK.md`.
 
 ## Verification history
 
 | Date | Task/Milestone | Commands | Result |
 |---|---|---|---|
+| 2026-07-17 | M10 go-live readiness re-certification | `make unit`; `make evaluate`; `make integration` | Passed: 203 unit tests; classifier evaluation precision/recall/category/context accuracy = 1.000 on 100 fake fixtures; PostgreSQL integration suite exited 0. Code certified green; added `docs/GO_LIVE_RUNBOOK.md` covering shadow → notification-only → controlled-reply rollout, rollback, incidents, backup, final env vars, and 30-day measurement. Remaining M10 gates await a real monitored chat with live traffic. |
+| 2026-07-17 | M10-02 live shadow observation | Live Compose migration/build/start; MTProto connection and one-chat allow-list verification; fail-closed `scripts.shadow_report` | Boundary passed for chat `-1004321050630`: notifications/outbound disabled, zero sends/commands, healthy queues and TTL state; no messages were classified, so the report is saved as inconclusive and M10-02 remains open |
 | 2026-07-17 | M10-02 readiness | Ruff; `uv run mypy app alembic scripts tests`; unit suite; `make integration`; `git diff --check` | Passed: 203 unit and 27 PostgreSQL integration tests; exactly-one-chat and disabled notification/outbound preconditions fail closed, classifier result/cost/queue-latency aggregates are content-free, notification/outbound evidence remains zero, TTL state is reported, and migration lifecycle passes; live observation remains required |
 | 2026-07-17 | M10-01 | Scoped Ruff; `uv run mypy app tests/unit/test_config.py tests/unit/test_status_reporting.py tests/unit/test_operator_bot.py tests/unit/test_listener_lifecycle.py`; focused unit tests; Compose config; `git diff --check` | Passed: feature flags validate at startup, outbound defaults disabled, disabling outbound creates no command workers while ingestion remains registered, disabling monitoring/notifications stops their runtime boundaries, and status shows all active flags |
 | 2026-07-17 | M9-07 / M9 full gate | Isolated PostgreSQL 17.5 migration/encrypted dump/separate-database restore drill; Ruff; `uv run mypy app alembic scripts tests`; unit suite; classifier evaluation; integration suite; Compose config; runtime image build; `git diff --check` | Passed: encrypted custom dump restored to `app_restore_test` at Alembic `d8a1e4c7f206`, all 18 public tables and marker data recovered; full M9 gate passed |
