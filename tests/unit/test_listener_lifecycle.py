@@ -9,6 +9,7 @@ from typing import Any
 
 import pytest
 
+from app.listener.__main__ import _outbound_workers, _register_ingestion_handler
 from app.listener.lifecycle import (
     ListenerAlreadyRunning,
     SessionFileLock,
@@ -103,3 +104,48 @@ async def test_unauthorized_session_fails_without_interactive_login() -> None:
 
     assert client.run_calls == 0
     assert client.disconnect_calls == 1
+
+
+def test_outbound_disabled_keeps_ingestion_and_builds_no_command_workers(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    handlers: list[object] = []
+
+    class RegistrationClient:
+        def add_new_message_handler(self, handler: object) -> None:
+            handlers.append(handler)
+
+    monkeypatch.setattr(
+        "app.listener.__main__.database_message_persister", lambda _factory: object()
+    )
+    client = RegistrationClient()
+    session_factory = object()
+    allow_list = object()
+
+    _register_ingestion_handler(
+        client,  # type: ignore[arg-type]
+        allow_list,  # type: ignore[arg-type]
+        session_factory,  # type: ignore[arg-type]
+        monitoring_enabled=True,
+    )
+    workers = _outbound_workers(
+        client,  # type: ignore[arg-type]
+        session_factory,  # type: ignore[arg-type]
+        outbound_replies_enabled=False,
+    )
+
+    assert len(handlers) == 1
+    assert workers == ()
+
+
+def test_monitoring_disabled_registers_no_ingestion_handler() -> None:
+    class RegistrationClient:
+        def add_new_message_handler(self, _handler: object) -> None:
+            raise AssertionError("Monitoring-disabled listener must not ingest messages")
+
+    _register_ingestion_handler(
+        RegistrationClient(),  # type: ignore[arg-type]
+        object(),  # type: ignore[arg-type]
+        object(),  # type: ignore[arg-type]
+        monitoring_enabled=False,
+    )

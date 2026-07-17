@@ -7,7 +7,7 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Annotated, ClassVar, Literal, Self
 
-from pydantic import Field, SecretStr, ValidationError, field_validator, model_validator
+from pydantic import BaseModel, Field, SecretStr, ValidationError, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 from pydantic_settings.exceptions import SettingsError
 
@@ -25,6 +25,15 @@ class ServiceName(StrEnum):
 
 class ConfigurationError(ValueError):
     """Raised when a service lacks required configuration."""
+
+
+class FeatureFlags(BaseModel):
+    """Runtime switches exposed in operational status."""
+
+    monitoring_enabled: bool
+    notifications_enabled: bool
+    outbound_replies_enabled: bool
+    translation_enabled: bool
 
 
 class AppSettings(BaseSettings):
@@ -59,6 +68,8 @@ class AppSettings(BaseSettings):
     classification_max_attempts: int = Field(default=4, gt=0)
     classification_request_timeout_seconds: int = Field(default=30, gt=0)
 
+    monitoring_enabled: bool = True
+    notifications_enabled: bool = True
     translation_enabled: bool = True
     outbound_replies_enabled: bool = False
     translation_base_url: str = "http://libretranslate:5000"
@@ -133,6 +144,15 @@ class AppSettings(BaseSettings):
             names = ", ".join(missing)
             raise ConfigurationError(f"Missing settings for {service.value}: {names}")
         return self
+
+    def feature_flags(self) -> FeatureFlags:
+        """Return the complete, typed rollout configuration."""
+        return FeatureFlags(
+            monitoring_enabled=self.monitoring_enabled,
+            notifications_enabled=self.notifications_enabled,
+            outbound_replies_enabled=self.outbound_replies_enabled,
+            translation_enabled=self.translation_enabled,
+        )
 
 
 def load_settings(service: ServiceName) -> AppSettings:

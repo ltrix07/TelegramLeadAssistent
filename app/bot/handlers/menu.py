@@ -33,10 +33,17 @@ async def show_status(
     settings: AppSettings,
 ) -> None:
     """Show explicit component failures and content-free operational aggregates."""
-    translator_healthy = await TranslatorHealthProbe(
-        settings.translation_base_url,
-        settings.translation_request_timeout_seconds,
-    ).healthy()
+    translator_healthy = (
+        not settings.translation_enabled
+        or await TranslatorHealthProbe(
+            settings.translation_base_url, settings.translation_request_timeout_seconds
+        ).healthy()
+    )
+    translator_label = (
+        "отключён"
+        if not settings.translation_enabled
+        else ("работает" if translator_healthy else "НЕДОСТУПЕН")
+    )
     try:
         async with session_factory() as session:
             snapshot = await StatusRepository(session).collect(
@@ -45,10 +52,14 @@ async def show_status(
     except (SQLAlchemyError, RuntimeError):
         await message.answer(
             "Состояние системы\n"
+            f"Флаги: мониторинг={'вкл' if settings.monitoring_enabled else 'выкл'}, "
+            f"уведомления={'вкл' if settings.notifications_enabled else 'выкл'}, "
+            f"исходящие ответы={'вкл' if settings.outbound_replies_enabled else 'выкл'}, "
+            f"перевод={'вкл' if settings.translation_enabled else 'выкл'}\n"
             "PostgreSQL: НЕДОСТУПЕН\n"
             "MTProto: состояние неизвестно\n"
             "Classifier: состояние неизвестно\n"
-            f"Translator: {'работает' if translator_healthy else 'НЕДОСТУПЕН'}"
+            f"Translator: {translator_label}"
         )
         return
-    await message.answer(render_status(snapshot))
+    await message.answer(render_status(snapshot, settings.feature_flags()))

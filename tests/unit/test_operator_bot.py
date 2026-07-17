@@ -14,6 +14,7 @@ from app.bot.application import create_dispatcher, run_bot
 from app.bot.keyboards.chats import CHAT_PICKER_REQUEST_ID, build_chat_picker_keyboard
 from app.bot.keyboards.main_menu import MAIN_MENU_BUTTONS, build_main_menu_keyboard
 from app.bot.middleware.authorization import OperatorAuthorizationMiddleware
+from app.config import AppSettings
 
 
 def make_message(user_id: int) -> Message:
@@ -158,3 +159,53 @@ async def test_run_bot_starts_long_polling_without_network(monkeypatch: pytest.M
     start_polling.assert_awaited_once()
     assert worker_started.is_set()
     assert alert_worker_started.is_set()
+
+
+@pytest.mark.asyncio
+async def test_notifications_flag_prevents_notification_worker_start(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    notification_worker_created = False
+
+    class FakeDispatcher:
+        def resolve_used_update_types(self) -> list[str]:
+            return []
+
+        async def start_polling(self, *_args: object, **_kwargs: object) -> None:
+            return None
+
+    class FakeBot:
+        def __init__(self, token: str) -> None:
+            self.token = token
+
+        async def __aenter__(self) -> FakeBot:
+            return self
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+    class ForbiddenNotificationWorker:
+        def __init__(self, *_args: object) -> None:
+            nonlocal notification_worker_created
+            notification_worker_created = True
+
+    class FakeAlertWorker:
+        def __init__(self, *_args: object) -> None:
+            pass
+
+        async def run_forever(self) -> None:
+            await asyncio.Event().wait()
+
+    monkeypatch.setattr("app.bot.application.create_dispatcher", lambda *_: FakeDispatcher())
+    monkeypatch.setattr("app.bot.application.Bot", FakeBot)
+    monkeypatch.setattr("app.bot.application.BotNotificationWorker", ForbiddenNotificationWorker)
+    monkeypatch.setattr("app.bot.application.OperationalAlertWorker", FakeAlertWorker)
+
+    await run_bot(
+        "123456:fake-token",
+        42,
+        AsyncMock(),
+        AppSettings(notifications_enabled=False),
+    )
+
+    assert notification_worker_created is False

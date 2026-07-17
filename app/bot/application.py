@@ -53,10 +53,12 @@ async def run_bot(
     """Run the operator bot using long polling."""
     dispatcher = create_dispatcher(operator_user_id, session_factory, settings)
     async with Bot(token=token) as bot:
-        notification_worker = BotNotificationWorker(session_factory, bot, operator_user_id)
-        notification_task = asyncio.create_task(
-            notification_worker.run_forever(), name="operator-notification-worker"
-        )
+        notification_task: asyncio.Task[None] | None = None
+        if settings is None or settings.notifications_enabled:
+            notification_worker = BotNotificationWorker(session_factory, bot, operator_user_id)
+            notification_task = asyncio.create_task(
+                notification_worker.run_forever(), name="operator-notification-worker"
+            )
         alert_worker = OperationalAlertWorker(session_factory, bot, operator_user_id)
         alert_task = asyncio.create_task(
             alert_worker.run_forever(), name="operational-alert-worker"
@@ -67,6 +69,8 @@ async def run_bot(
                 allowed_updates=dispatcher.resolve_used_update_types(),
             )
         finally:
-            notification_task.cancel()
+            if notification_task is not None:
+                notification_task.cancel()
             alert_task.cancel()
-            await asyncio.gather(notification_task, alert_task, return_exceptions=True)
+            tasks = [alert_task] if notification_task is None else [notification_task, alert_task]
+            await asyncio.gather(*tasks, return_exceptions=True)

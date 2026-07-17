@@ -10,6 +10,7 @@ import httpx
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import FeatureFlags
 from app.database.models import (
     ApiUsageDaily,
     MonitoredChat,
@@ -173,18 +174,27 @@ class StatusRepository:
         )
 
 
-def render_status(snapshot: StatusSnapshot) -> str:
+def render_status(snapshot: StatusSnapshot, flags: FeatureFlags) -> str:
     """Render only health labels, counters, durations, and aggregate cost."""
     state = {True: "работает", False: "НЕДОСТУПЕН"}
     oldest = f"{snapshot.oldest_job_age_seconds:.0f} сек."
+    flag_state = {True: "включён", False: "отключён"}
+    translator_state = (
+        state[snapshot.translator_healthy] if flags.translation_enabled else "отключён"
+    )
     return "\n".join(
         (
             "Состояние системы",
+            "Флаги:",
+            f"- Мониторинг: {flag_state[flags.monitoring_enabled]}",
+            f"- Уведомления: {flag_state[flags.notifications_enabled]}",
+            f"- Исходящие ответы: {flag_state[flags.outbound_replies_enabled]}",
+            f"- Перевод: {flag_state[flags.translation_enabled]}",
             f"MTProto: {state[snapshot.mtproto_healthy]}",
             "Bot API: работает",
             "PostgreSQL: работает",
             f"Classifier: {state[snapshot.classifier_healthy]}",
-            f"Translator: {state[snapshot.translator_healthy]}",
+            f"Translator: {translator_state}",
             f"Активные чаты: {snapshot.active_chats}",
             f"Задачи классификации: {snapshot.pending_classification_jobs}",
             f"Исходящие команды: {snapshot.pending_outbound_commands}",

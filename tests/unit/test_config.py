@@ -153,3 +153,30 @@ def test_maintenance_schedule_is_environment_configurable(
 
     assert settings.maintenance_interval_seconds == 12.5
     assert settings.stale_lock_timeout_seconds == 90
+
+
+def test_feature_flags_have_safe_defaults() -> None:
+    flags = AppSettings().feature_flags()
+
+    assert flags.monitoring_enabled is True
+    assert flags.notifications_enabled is True
+    assert flags.translation_enabled is True
+    assert flags.outbound_replies_enabled is False
+
+
+@pytest.mark.parametrize(
+    "name",
+    (
+        "MONITORING_ENABLED",
+        "NOTIFICATIONS_ENABLED",
+        "OUTBOUND_REPLIES_ENABLED",
+        "TRANSLATION_ENABLED",
+    ),
+)
+def test_feature_flags_validate_environment_values(
+    monkeypatch: pytest.MonkeyPatch, name: str
+) -> None:
+    monkeypatch.setenv(name, "not-a-boolean")
+
+    with pytest.raises(ConfigurationError, match="Invalid application settings"):
+        load_settings(ServiceName.MAINTENANCE_WORKER)

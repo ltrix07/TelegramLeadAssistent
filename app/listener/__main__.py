@@ -33,6 +33,35 @@ from app.listener.reply_chain_worker import ReplyChainSnapshotHandler
 from app.logging import configure_logging
 
 
+def _register_ingestion_handler(
+    client: MTProtoClient,
+    allow_list: ActiveChatAllowList,
+    session_factory: async_sessionmaker[AsyncSession],
+    *,
+    monitoring_enabled: bool,
+) -> None:
+    """Attach message ingestion only when monitoring is enabled."""
+    if monitoring_enabled:
+        client.add_new_message_handler(
+            IngestionHandler(allow_list, database_message_persister(session_factory))
+        )
+
+
+def _outbound_workers(
+    client: MTProtoClient,
+    session_factory: async_sessionmaker[AsyncSession],
+    *,
+    outbound_replies_enabled: bool,
+) -> tuple[SendReplyWorker | EditReplyWorker, ...]:
+    """Build no command executors while outbound replies are disabled."""
+    if not outbound_replies_enabled:
+        return ()
+    return (
+        SendReplyWorker(session_factory, client),
+        EditReplyWorker(session_factory, client),
+    )
+
+
 async def _run_connected_tasks(
     client: MTProtoClient,
     session_factory: async_sessionmaker[AsyncSession],
@@ -52,13 +81,14 @@ async def _run_connected_tasks(
             ReplyChainSnapshotHandler(cast(ReplyMessageSource, client)),
         ).run_forever(),
     ]
-    if outbound_replies_enabled:
-        tasks.extend(
-            (
-                SendReplyWorker(session_factory, client).run_forever(),
-                EditReplyWorker(session_factory, client).run_forever(),
-            )
+    tasks.extend(
+        worker.run_forever()
+        for worker in _outbound_workers(
+            client,
+            session_factory,
+            outbound_replies_enabled=outbound_replies_enabled,
         )
+    )
     await asyncio.gather(*tasks)
 
 
@@ -76,8 +106,11 @@ async def _run() -> None:
             raise RuntimeError("Validated listener database URL is missing")
         engine, session_factory = create_session_factory(settings.database_url.get_secret_value())
         allow_list = ActiveChatAllowList(database_active_chat_loader(session_factory))
-        client.add_new_message_handler(
-            IngestionHandler(allow_list, database_message_persister(session_factory))
+        _register_ingestion_handler(
+            client,
+            allow_list,
+            session_factory,
+            monitoring_enabled=settings.monitoring_enabled,
         )
         try:
             await run_listener(

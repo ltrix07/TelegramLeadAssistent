@@ -6,6 +6,7 @@ import httpx
 import pytest
 
 from app.bot.status import StatusSnapshot, TranslatorHealthProbe, render_status
+from app.config import FeatureFlags
 
 
 @pytest.mark.asyncio
@@ -38,7 +39,13 @@ def test_status_renderer_contains_only_operational_aggregates() -> None:
             outbound_needs_review=4,
             oldest_job_age_seconds=8.4,
             api_cost_month_usd=Decimal("2.845"),
-        )
+        ),
+        FeatureFlags(
+            monitoring_enabled=True,
+            notifications_enabled=False,
+            outbound_replies_enabled=False,
+            translation_enabled=True,
+        ),
     )
 
     assert "MTProto: НЕДОСТУПЕН" in rendered
@@ -46,5 +53,8 @@ def test_status_renderer_contains_only_operational_aggregates() -> None:
     assert "Translator: НЕДОСТУПЕН" in rendered
     assert "Самая старая задача: 8 сек." in rendered
     assert "Расход API за месяц: $2.84" in rendered
+    assert "Мониторинг: включён" in rendered
+    assert "Уведомления: отключён" in rendered
+    assert "Исходящие ответы: отключён" in rendered
     assert "message" not in rendered.lower()
     assert "prompt" not in rendered.lower()

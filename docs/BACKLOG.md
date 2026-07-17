@@ -926,7 +926,7 @@ Acceptance:
 
 ## M10 — Controlled rollout
 
-### [ ] M10-01 Feature flags and safe defaults
+### [x] M10-01 Feature flags and safe defaults
 
 Dependencies: M9 complete.
 
