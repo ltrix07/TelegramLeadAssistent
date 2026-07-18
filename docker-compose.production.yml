@@ -1,21 +1,40 @@
 services:
+  # security_opt apparmor=unconfined works around a snap-packaged Docker bug where
+  # the container docker-default AppArmor profile denies stop/kill signals sent by the
+  # snap.docker.dockerd daemon ("cannot stop container: permission denied"). Containers
+  # keep seccomp, capability, and namespace isolation. Remove this if Docker is installed
+  # from the official docker-ce apt repository instead of snap.
   postgres:
     restart: unless-stopped
+    security_opt:
+      - apparmor=unconfined
 
   libretranslate:
     restart: unless-stopped
+    security_opt:
+      - apparmor=unconfined
 
   telegram-listener:
     restart: unless-stopped
+    security_opt:
+      - apparmor=unconfined
 
   classification-worker:
     restart: unless-stopped
+    security_opt:
+      - apparmor=unconfined
 
   operator-bot:
     restart: unless-stopped
+    security_opt:
+      - apparmor=unconfined
 
   translation-manager:
     restart: unless-stopped
+    security_opt:
+      - apparmor=unconfined
 
   maintenance-worker:
     restart: unless-stopped
+    security_opt:
+      - apparmor=unconfined
