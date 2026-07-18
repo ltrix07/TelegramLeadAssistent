@@ -222,3 +222,25 @@ Only decisions not already fixed by `docs/SPEC.md` belong here.
   must manage the encryption passphrase separately, provision a new Telegram session if its volume
   is lost, and rotate expired primary and off-host artifacts.
 - SPEC impact: Clarifies the operational policy for the existing backup requirement.
+
+### ADR-013 — Emoji-heavy prefilter rule for promotional noise
+
+- Date: 2026-07-18
+- Status: Accepted
+- Related task: M10 rollout cost control
+- Context: The target seller communities contain frequent promotional/spam messages that carry
+  real text (so they pass the existing conservative prefilter) and would reach the OpenAI
+  classifier, consuming tokens only to be labeled irrelevant. The operator observed that such
+  messages are consistently emoji-heavy while genuine practical questions use at most one or two
+  emoji.
+- Decision: Reject a message locally with reason code `EXCESSIVE_EMOJI` when it contains four or
+  more emoji, counted by the Unicode "Symbol, other" (`So`) category before any API call. The
+  threshold sits well above normal question usage to keep the prefilter conservative.
+- Alternatives considered: Drop forwarded messages or invite-link messages; add promotional
+  keyword/link-count heuristics; or classify everything and rely only on budget alerts.
+- Consequences: Most promotional noise is discarded before token spend with a low false-negative
+  risk. A rare genuine question using four or more emoji would be dropped; the threshold is a
+  single tunable constant. Emoji counting is a codepoint approximation, so an unusual
+  multi-codepoint emoji sequence could contribute more than one to the count.
+- SPEC impact: Extends the existing conservative local prefilter; the two-stage classification
+  workflow is unchanged.

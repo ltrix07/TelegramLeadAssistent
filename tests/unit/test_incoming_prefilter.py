@@ -76,6 +76,8 @@ def test_mapper_uses_only_cached_event_data() -> None:
         (_incoming(None), FilterReasonCode.NO_TEXT),
         (replace(_incoming(None), has_sticker=True), FilterReasonCode.STICKER_WITHOUT_CAPTION),
         (_incoming("👋🙂"), FilterReasonCode.ONLY_EMOJI),
+        (_incoming("🔥🔥 продам аккаунты дёшево 💰💯"), FilterReasonCode.EXCESSIVE_EMOJI),
+        (_incoming("🚀💰🔥✅ жми на ссылку"), FilterReasonCode.EXCESSIVE_EMOJI),
         (_incoming("/start"), FilterReasonCode.BOT_COMMAND),
         (_incoming("https://example.com"), FilterReasonCode.ONLY_URL),
         (_incoming("Привет!"), FilterReasonCode.KNOWN_GREETING),
@@ -97,6 +99,8 @@ def test_unambiguous_noise_is_rejected(message: IncomingMessage, reason: FilterR
         "https://example.com не открывается",
         "/deploy production",
         "...",
+        "Кто-нибудь сталкивался с блокировкой листинга? 😔",
+        "Помогите разобраться с рекламой на Amazon 🙏🚀",
     ],
 )
 def test_ambiguous_text_passes_without_requiring_question_mark(text: str) -> None:

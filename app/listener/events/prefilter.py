@@ -18,6 +18,7 @@ class FilterReasonCode(StrEnum):
     SERVICE_MESSAGE = "SERVICE_MESSAGE"
     STICKER_WITHOUT_CAPTION = "STICKER_WITHOUT_CAPTION"
     ONLY_EMOJI = "ONLY_EMOJI"
+    EXCESSIVE_EMOJI = "EXCESSIVE_EMOJI"
     BOT_COMMAND = "BOT_COMMAND"
     ONLY_URL = "ONLY_URL"
     KNOWN_GREETING = "KNOWN_GREETING"
@@ -48,6 +49,9 @@ _KNOWN_THANKS = frozenset({"благодарю", "спасибо", "thank you", 
 _BOT_COMMAND = re.compile(r"^/[A-Za-z0-9_]+(?:@[A-Za-z0-9_]+)?$")
 _URL = re.compile(r"https?://[^\s]+", re.IGNORECASE)
 _EDGE_PUNCTUATION = " !.,?:;—–-…"
+# Promotional messages in these communities are emoji-heavy while genuine questions use
+# at most one or two, so treat four or more emoji as unambiguous local noise.
+_MAX_EMOJI = 4
 
 
 def prefilter_message(message: IncomingMessage) -> FilterResult:
@@ -71,6 +75,8 @@ def prefilter_message(message: IncomingMessage) -> FilterResult:
         return _reject(FilterReasonCode.BOT_COMMAND)
     if _is_only_urls(text):
         return _reject(FilterReasonCode.ONLY_URL)
+    if _count_emoji(text) >= _MAX_EMOJI:
+        return _reject(FilterReasonCode.EXCESSIVE_EMOJI)
 
     normalized = " ".join(text.casefold().strip(_EDGE_PUNCTUATION).split())
     if normalized in _KNOWN_GREETINGS:
@@ -90,6 +96,15 @@ def _is_only_urls(text: str) -> bool:
         return False
     remainder = _URL.sub("", text)
     return not remainder.strip(" \t\r\n,;")
+
+
+def _count_emoji(text: str) -> int:
+    """Count emoji codepoints, approximated by the "Symbol, other" Unicode category.
+
+    Skin-tone modifiers, zero-width joiners, and variation selectors fall outside this
+    category, so a multi-codepoint emoji contributes roughly one to the count.
+    """
+    return sum(1 for character in text if unicodedata.category(character) == "So")
 
 
 def _is_only_emoji(text: str) -> bool:
