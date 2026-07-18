@@ -133,6 +133,9 @@ services:
   maintenance-worker:
     <<: *app-service
     command: ["python", "-m", "app.maintenance"]
+    environment:
+      <<: *app-environment
+      OPERATOR_TELEGRAM_USER_ID: ${OPERATOR_TELEGRAM_USER_ID:?Set OPERATOR_TELEGRAM_USER_ID}
 
 networks:
   backend:
