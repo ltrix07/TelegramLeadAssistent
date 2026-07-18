@@ -19,11 +19,23 @@ from app.listener.mtproto.client import TelethonSessionClient
 
 class FakePermissions:
     def __init__(
-        self, *, send_messages: bool, is_creator: bool = False, is_admin: bool = False
+        self,
+        *,
+        send_messages: bool,
+        is_creator: bool = False,
+        is_admin: bool = False,
+        is_banned: bool = False,
+        banned_send: bool = False,
     ) -> None:
+        # Telethon's aggregated flag is intentionally unreliable for a self participant;
+        # the adapter must derive send capability from ban and default-rights state instead.
         self.send_messages = send_messages
         self.is_creator = is_creator
         self.is_admin = is_admin
+        self.is_banned = is_banned
+        self.participant = SimpleNamespace(
+            banned_rights=SimpleNamespace(send_messages=banned_send) if is_banned else None
+        )
 
 
 class FakeTelethonClient:
@@ -34,12 +46,19 @@ class FakeTelethonClient:
         can_send: bool = True,
         is_creator: bool = False,
         is_admin: bool = False,
+        is_banned: bool = False,
+        banned_send: bool = False,
+        default_banned_send: bool = False,
         topics: list[object] | BaseException | None = None,
     ) -> None:
         self.entity = entity
+        if not isinstance(entity, BaseException):
+            entity.default_banned_rights = SimpleNamespace(send_messages=default_banned_send)
         self.can_send = can_send
         self.is_creator = is_creator
         self.is_admin = is_admin
+        self.is_banned = is_banned
+        self.banned_send = banned_send
         self.history_calls = 0
         self.topics = [] if topics is None else topics
         self.topic_calls = 0
@@ -58,6 +77,8 @@ class FakeTelethonClient:
             send_messages=self.can_send,
             is_creator=self.is_creator,
             is_admin=self.is_admin,
+            is_banned=self.is_banned,
+            banned_send=self.banned_send,
         )
 
     async def __call__(self, request: object) -> object:
@@ -115,7 +136,46 @@ async def test_accessible_group_becomes_active(entity: object) -> None:
 @pytest.mark.asyncio
 async def test_read_only_group_is_normalized() -> None:
     adapter = TelethonSessionClient(
-        cast(TelegramClient, FakeTelethonClient(_group(), can_send=False))
+        cast(TelegramClient, FakeTelethonClient(_group(), default_banned_send=True))
+    )
+
+    result = await adapter.verify_chat(-1)
+
+    assert result.outcome == ChatVerificationOutcome.READ_ONLY
+
+
+@pytest.mark.asyncio
+async def test_self_participant_with_send_allowed_is_active() -> None:
+    # ChannelParticipantSelf makes Telethon report send_messages=False even though the
+    # chat allows members to send; verification must still resolve the chat as active.
+    adapter = TelethonSessionClient(
+        cast(
+            TelegramClient,
+            FakeTelethonClient(
+                _channel(broadcast=False, megagroup=True),
+                can_send=False,
+                default_banned_send=False,
+            ),
+        )
+    )
+
+    result = await adapter.verify_chat(-1001)
+
+    assert result.outcome == ChatVerificationOutcome.ACTIVE
+
+
+@pytest.mark.asyncio
+async def test_personally_muted_member_is_read_only() -> None:
+    adapter = TelethonSessionClient(
+        cast(
+            TelegramClient,
+            FakeTelethonClient(
+                _group(),
+                can_send=True,
+                is_banned=True,
+                banned_send=True,
+            ),
+        )
     )
 
     result = await adapter.verify_chat(-1)

@@ -50,6 +50,23 @@ class ChatVerificationResult:
     error_code: str | None = None
 
 
+def _account_can_send(entity: object, permissions: object) -> bool:
+    """Return whether the current account may send messages in the chat.
+
+    Telethon's aggregated ``permissions.send_messages`` reports ``False`` for a
+    ``ChannelParticipantSelf`` participant even when the chat permits members to send, so
+    derive the capability from admin/creator status, the participant's own ban, and the
+    chat default banned rights instead of trusting the aggregate flag.
+    """
+    if getattr(permissions, "is_creator", False) or getattr(permissions, "is_admin", False):
+        return True
+    if getattr(permissions, "is_banned", False):
+        banned_rights = getattr(getattr(permissions, "participant", None), "banned_rights", None)
+        return not bool(getattr(banned_rights, "send_messages", False))
+    default_banned = getattr(entity, "default_banned_rights", None)
+    return not bool(getattr(default_banned, "send_messages", False))
+
+
 @dataclass(frozen=True, slots=True)
 class ForumTopicMetadata:
     """Forum topic identity extracted from one Telegram message."""
@@ -191,10 +208,7 @@ class TelethonSessionClient:
             # Reading one message proves that the current session can access history.
             await self._client.get_messages(entity, limit=1)
             permissions = await self._client.get_permissions(entity, "me")
-            can_send = any(
-                bool(getattr(permissions, name, False))
-                for name in ("send_messages", "is_creator", "is_admin")
-            )
+            can_send = _account_can_send(entity, permissions)
             return ChatVerificationResult(
                 ChatVerificationOutcome.ACTIVE if can_send else ChatVerificationOutcome.READ_ONLY,
                 is_supergroup=is_supergroup,
