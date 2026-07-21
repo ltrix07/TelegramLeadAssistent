@@ -244,3 +244,27 @@ Only decisions not already fixed by `docs/SPEC.md` belong here.
   multi-codepoint emoji sequence could contribute more than one to the count.
 - SPEC impact: Extends the existing conservative local prefilter; the two-stage classification
   workflow is unchanged.
+
+### ADR-014 — Evaluation fixtures follow the freelance-developer lead lens
+
+- Date: 2026-07-21
+- Status: Accepted
+- Related task: Classifier v2 evaluation fixture reframe
+- Context: The previous stage-1 evaluation fixtures reflected a general developer-community
+  relevance model. Classifier v2 instead identifies prospective customers in seller communities
+  whose problems a freelance developer can solve through automation, scraping, bots, integrations,
+  data pipelines, or AI workflows. Production observations also showed recurring false positives
+  outside that service boundary.
+- Decision: Keep the v1 fixture file as historical evidence and make `stage1_v2.json` the active
+  offline dataset. The replacement preserves the 100-fixture acceptance distribution while
+  representing seller-community leads and non-leads under the v2 service lens. Its irrelevant
+  cases include anonymized patterns from production false positives: advertising and review
+  questions, appeals and payout issues, VPN and crypto topics, automated notices, and fragments.
+- Alternatives considered: Continue evaluating v2 prompts against the v1 developer-community
+  dataset, broaden relevance to every technical question, or remove production-derived negative
+  patterns from offline evaluation.
+- Consequences: Offline evaluation now tests the intended customer profile and guards against the
+  observed false-positive classes. It remains deterministic and contains no Telegram profile data;
+  fixture text is the only repository location for example message content.
+- SPEC impact: Clarifies the evaluation corpus for the existing stage-1 relevance workflow without
+  changing classification stages, storage, or delivery behavior.

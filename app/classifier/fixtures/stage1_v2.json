@@ -1,0 +1,702 @@
+[
+  {
+    "fixture_id": "technical-001",
+    "text": "После обновления парсер eBay стал получать 403 на каждый запрос. Как обойти без покупки дорогих прокси?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-002",
+    "text": "My Amazon SP-API sync throws throttling errors every few minutes. How do I add proper backoff and batching?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-003",
+    "text": "Нужен скрипт, который каждый час выгружает новые заказы из eBay в Google Sheets. Кто может сделать?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-004",
+    "text": "Can someone build a bot that converts Walmart tracking numbers into ones eBay accepts?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-005",
+    "text": "Мой телеграм-бот падает, когда пользователь присылает фото вместо текста. Как правильно обработать?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-006",
+    "text": "How do I automatically mark eBay orders as delivered via the API instead of clicking each one?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-007",
+    "text": "Пишу интеграцию между CRM и Telegram, но вебхуки иногда дублируются. Как сделать обработку идемпотентной?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-008",
+    "text": "Need a script to bulk-update prices on 2000 listings from a CSV. Doing it manually is impossible. Anyone?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-009",
+    "text": "Селениум-скрапер отваливается на капче Home Depot. Есть способ стабильно собирать оттуда цены?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-010",
+    "text": "How can I schedule a Python script on my VPS to run every morning and send me a report?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-011",
+    "text": "Ищу того, кто напишет автоматизацию: при смене статуса в таблице бот тегает ответственного менеджера.",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-012",
+    "text": "My repricer pushes wrong prices when the source site returns partial data. How do I validate before updating?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-013",
+    "text": "Как из PDF-инвойсов автоматически вытащить позиции и суммы в структурированный вид?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-014",
+    "text": "Anyone able to build a Telegram bot that alerts me when a competitor goes out of stock?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-015",
+    "text": "Postgres у меня разрастается от логов парсера. Как настроить автоматический ретеншн и чистку?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-016",
+    "text": "I need to connect Google Sheets to my Telegram bot so edits trigger notifications. How would I do that?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-017",
+    "text": "Скрипт репрайсинга работает, но раз в день зависает намертво. Как поймать и залогировать причину?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-018",
+    "text": "Can someone automate refunds on Amazon, generating the labels and submitting the requests programmatically?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-019",
+    "text": "Нужна выгрузка остатков с 20 магазинов в одну базу с обработкой ошибок и ретраями. Кто возьмётся?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-020",
+    "text": "How do I rotate proxies properly so my scraper does not get banned in the middle of a run?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-021",
+    "text": "Хочу бота, который принимает заявки из чата и складывает их в базу с простой админкой. Реально сделать?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-022",
+    "text": "My aiohttp scraper leaks connections and crashes after a few hours. What am I doing wrong?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-023",
+    "text": "Можно ли автоматически генерировать альтернативные трек-номера для eBay через скрипт?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-024",
+    "text": "Need an API integration between Shopify and my internal Postgres for inventory sync. Who can help?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-025",
+    "text": "Парсер собирает данные, но JSON от приватного API постоянно меняет структуру. Как валидировать надёжно?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-026",
+    "text": "How do I dedupe incoming leads before writing them to the sheet? I am getting tons of duplicates.",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-027",
+    "text": "Ищу разработчика на телеграм-бота для CRM: задачи, статусы, уведомления команде, база в Postgres.",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-028",
+    "text": "My cron job runs but silently fails half the time with no logs. How do I make it reliable and observable?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-029",
+    "text": "Нужно автоматически сверять трекинг между Amazon и eBay и помечать расхождения. Сделаете под ключ?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "technical-030",
+    "text": "Can someone write a scraper that pulls prices from Home Depot even with their bot protection?",
+    "expected_is_relevant": true,
+    "expected_category": "technical",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "operational-001",
+    "text": "Каждое утро вручную проверяю остатки по 15 магазинам и переношу в таблицу. Уже нет сил, уходят часы.",
+    "expected_is_relevant": true,
+    "expected_category": "operational",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "operational-002",
+    "text": "I copy every new order into a spreadsheet by hand, hours a day. There has to be a better way.",
+    "expected_is_relevant": true,
+    "expected_category": "operational",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "operational-003",
+    "text": "Вручную обновляю статусы доставки клиентам в телеграме и постоянно кого-то забываю.",
+    "expected_is_relevant": true,
+    "expected_category": "operational",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "operational-004",
+    "text": "Every night I manually check about 200 listings for price changes. It is killing me.",
+    "expected_is_relevant": true,
+    "expected_category": "operational",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "operational-005",
+    "text": "Приходится руками переносить данные из инвойсов в учётную систему, дикая ежедневная рутина.",
+    "expected_is_relevant": true,
+    "expected_category": "operational",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "operational-006",
+    "text": "I re-enter tracking numbers from emails into eBay one by one, an insane amount of clicking.",
+    "expected_is_relevant": true,
+    "expected_category": "operational",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "operational-007",
+    "text": "Каждую неделю вручную собираю отчёт по продажам из трёх источников в Excel, полдня уходит.",
+    "expected_is_relevant": true,
+    "expected_category": "operational",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "operational-008",
+    "text": "My team manually pings each other on Telegram whenever a delivery status changes. It is chaos.",
+    "expected_is_relevant": true,
+    "expected_category": "operational",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "operational-009",
+    "text": "Вручную рассылаю одинаковые сообщения новым лидам, по 50 в день, обычной копипастой.",
+    "expected_is_relevant": true,
+    "expected_category": "operational",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "operational-010",
+    "text": "I check competitor stock manually across a dozen sites every morning before I set prices.",
+    "expected_is_relevant": true,
+    "expected_category": "operational",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "operational-011",
+    "text": "Сверяю выплаты с заказами руками в конце месяца, всегда долго и с ошибками.",
+    "expected_is_relevant": true,
+    "expected_category": "operational",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "operational-012",
+    "text": "We manually tag which team member handles each product change in a shared Google Sheet.",
+    "expected_is_relevant": true,
+    "expected_category": "operational",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "operational-013",
+    "text": "Каждый день вручную выгружаю новые заказы и раскидываю их по менеджерам, съедает всё утро.",
+    "expected_is_relevant": true,
+    "expected_category": "operational",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "operational-014",
+    "text": "I copy-paste refund requests into a form one by one, dozens of them every day.",
+    "expected_is_relevant": true,
+    "expected_category": "operational",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "operational-015",
+    "text": "Постоянно вручную чищу и валидирую входящие данные перед загрузкой, это отнимает полдня.",
+    "expected_is_relevant": true,
+    "expected_category": "operational",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "analytics-001",
+    "text": "Как автоматически собирать цены конкурентов каждый день и складывать их в базу?",
+    "expected_is_relevant": true,
+    "expected_category": "analytics",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "analytics-002",
+    "text": "I want a daily automated report of my sales pulled from Amazon and eBay combined. Is that possible?",
+    "expected_is_relevant": true,
+    "expected_category": "analytics",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "analytics-003",
+    "text": "Нужен способ отслеживать, когда у конкурента меняется цена, и автоматически уведомлять меня.",
+    "expected_is_relevant": true,
+    "expected_category": "analytics",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "analytics-004",
+    "text": "How can I extract all my historical orders into a clean dataset for analysis?",
+    "expected_is_relevant": true,
+    "expected_category": "analytics",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "analytics-005",
+    "text": "Хочу дашборд по остаткам и продажам, который сам обновляется из моих источников данных.",
+    "expected_is_relevant": true,
+    "expected_category": "analytics",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "analytics-006",
+    "text": "Is there a way to automatically monitor my listings ranking and log it over time?",
+    "expected_is_relevant": true,
+    "expected_category": "analytics",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "analytics-007",
+    "text": "Нужно регулярно выгружать данные по трекингам и считать процент задержек доставки.",
+    "expected_is_relevant": true,
+    "expected_category": "analytics",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "analytics-008",
+    "text": "I need to scrape and aggregate competitor pricing across three marketplaces into one sheet.",
+    "expected_is_relevant": true,
+    "expected_category": "analytics",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "analytics-009",
+    "text": "Какой инструмент точнее для сбора данных по нише, или лучше заказать свой парсер под задачу?",
+    "expected_is_relevant": true,
+    "expected_category": "analytics",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "analytics-010",
+    "text": "Can I automatically collect and report which SKUs went out of stock this week?",
+    "expected_is_relevant": true,
+    "expected_category": "analytics",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-001",
+    "text": "Стоит ли писать свой репрайсер под SP-API или взять готовый сервис? Объёмы уже большие.",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-002",
+    "text": "Should I build a custom scraper or pay for a data provider for competitor prices?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-003",
+    "text": "Думаю автоматизировать всю сверку заказов, но не знаю с чего начать. Куда копать?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-004",
+    "text": "Is it worth automating my order-to-sheet flow, or is my volume too small to bother?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-005",
+    "text": "Готовые боты для уведомлений не тянут мою логику. Оправдано ли заказать кастомного?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-006",
+    "text": "n8n versus a custom FastAPI service for my integrations, what makes more sense long term?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-007",
+    "text": "Хочу перейти с ручного репрайсинга на автоматический. Что реалистично автоматизировать в первую очередь?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-008",
+    "text": "Would a Telegram bot or a web dashboard work better for tracking my inventory day to day?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-009",
+    "text": "SellerSprite перестал устраивать по данным. Менять на другой сервис или пилить своё решение?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-010",
+    "text": "Should I keep everything in Google Sheets or move to a real database as I scale up?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-011",
+    "text": "Планирую собрать пайплайн сбора цен. Скрейпинг или искать приватные API, что надёжнее в долгую?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-012",
+    "text": "Is it cheaper to hire someone to build a repricer once or keep paying monthly for a tool?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-013",
+    "text": "Хочу автоматизировать рассылку лидам. Делать через готовый сервис или собственного бота?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-014",
+    "text": "How should I architect syncing stock across 20 stores without it breaking constantly?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-015",
+    "text": "Стоит ли вкладываться в кастомную интеграцию с маркетплейсом или обойтись ручными выгрузками?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-016",
+    "text": "Playwright or Selenium for a long-running scraper, which one will give me fewer headaches?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-017",
+    "text": "Думаю о боте для обработки рефандов. Насколько этот процесс вообще автоматизируем?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-018",
+    "text": "Should I automate document data entry with OCR and AI, or just keep a VA doing it manually?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-019",
+    "text": "Как лучше организовать мониторинг цен: свой сервер с кроном или облачное решение?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "strategy-020",
+    "text": "Is building an AI classifier for my incoming leads worth it, or overkill at my current volume?",
+    "expected_is_relevant": true,
+    "expected_category": "strategy",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-001",
+    "text": "Какой бид ставить на автокампанию, чтобы не сливать бюджет впустую?",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-002",
+    "text": "Should I run broad match on single-word keywords or stick to phrase match?",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-003",
+    "text": "Надо ли валить из кулинарной ниши, если клики уже по доллару в топе?",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-004",
+    "text": "How do I get my first reviews on a brand new Kindle book?",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-005",
+    "text": "Органические отзывы просели, что сделать, чтобы люди чаще их оставляли?",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-006",
+    "text": "Стоит ли запускать рекламу в первый месяц или подождать, пока пойдёт органика?",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-007",
+    "text": "What is a realistic ACOS target for a new product launch?",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-008",
+    "text": "Получил MC011 на eBay. Как разблокировать выплаты и правильно подать апелляцию?",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-009",
+    "text": "My Amazon account got a sales restriction and my appeals keep getting denied. What should I do?",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-010",
+    "text": "eBay put my payouts on hold, how long does it usually take until they release the money?",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-011",
+    "text": "Как настроить VLESS Reality на своём сервере?",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-012",
+    "text": "Инбаунд с xhttp отдавать только определённым пользователям, как это сделать?",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-013",
+    "text": "Где выгоднее свапнуть USDT через DEX без больших комиссий?",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-014",
+    "text": "Is MoonPay or a DEX better for self-custody swaps right now?",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-015",
+    "text": "Нужно ли платить НДС при дропшипе из Германии на физлицо?",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-016",
+    "text": "Should my friend use a UK IP or a proxy for his newly created eBay account?",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-017",
+    "text": "Пользователю ограничен доступ к сообщениям на 1 день за многократное нарушение правил.",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-018",
+    "text": "Здравствуйте, проверяем вас на спамера. Нажмите кнопку ниже, чтобы подтвердить, что вы не бот.",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-019",
+    "text": "Сразу скинули!!",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-020",
+    "text": "что в авто, что в ручной",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-021",
+    "text": "Да, вопрос лишь в том, где их сейчас брать",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-022",
+    "text": "Всем привет, кто тут из Польши?",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-023",
+    "text": "Продаю прогретые аккаунты eBay и Amazon, пишите в личку, цены адекватные.",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-024",
+    "text": "Ну и кто вообще так делает в наше время?",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  },
+  {
+    "fixture_id": "irrelevant-025",
+    "text": "первый месяц спенд был 377 долларов, второй уже 1231, третий 2245",
+    "expected_is_relevant": false,
+    "expected_category": "irrelevant",
+    "expected_context_required": false
+  }
+]

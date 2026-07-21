@@ -24,7 +24,7 @@ from app.classifier.schemas import (
     ClassificationResult,
 )
 
-DEFAULT_FIXTURE_PATH = Path(__file__).with_name("fixtures") / "stage1_v1.json"
+DEFAULT_FIXTURE_PATH = Path(__file__).with_name("fixtures") / "stage1_v2.json"
 
 
 class EvaluationFixture(BaseModel):
