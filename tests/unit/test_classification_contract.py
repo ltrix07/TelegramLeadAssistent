@@ -100,7 +100,7 @@ def test_json_schema_is_closed_and_all_fields_are_required() -> None:
 def test_stage1_prompt_is_versioned_and_has_no_profile_fields() -> None:
     normalized_prompt = STAGE1_SYSTEM_PROMPT.casefold()
 
-    assert STAGE1_PROMPT_VERSION == "stage1_v1"
+    assert STAGE1_PROMPT_VERSION == "stage1_v2"
     assert "do not answer" in normalized_prompt
     assert "structured classificationresult fields" in normalized_prompt
     for forbidden_field in (
