@@ -38,8 +38,32 @@ async def _async_schema_state(database_url: str) -> tuple[set[str], list[object]
         await engine.dispose()
 
 
+async def _async_detected_question_reference(database_url: str) -> tuple[bool, str | None]:
+    engine = create_async_engine(database_url)
+    try:
+        async with engine.connect() as connection:
+            return await connection.run_sync(_detected_question_reference)
+    finally:
+        await engine.dispose()
+
+
 def _schema_state(database_url: str) -> tuple[set[str], list[object]]:
     return asyncio.run(_async_schema_state(database_url))
+
+
+def _detected_question_reference(connection: Connection) -> tuple[bool, str | None]:
+    inspector = inspect(connection)
+    column = next(
+        item
+        for item in inspector.get_columns("detected_questions")
+        if item["name"] == "monitored_chat_id"
+    )
+    foreign_key = next(
+        item
+        for item in inspector.get_foreign_keys("detected_questions")
+        if item["name"] == "fk_detected_questions_monitored_chat_id_monitored_chats"
+    )
+    return bool(column["nullable"]), foreign_key.get("options", {}).get("ondelete")
 
 
 def _compare_schema(connection: Connection) -> tuple[set[str], list[object]]:
@@ -61,6 +85,9 @@ def test_upgrade_downgrade_upgrade_and_metadata_parity(
     tables, differences = _schema_state(database_url)
     assert set(Base.metadata.tables) <= tables
     assert differences == []
+    nullable, ondelete = asyncio.run(_async_detected_question_reference(database_url))
+    assert nullable is True
+    assert ondelete == "SET NULL"
 
     command.downgrade(config, "base")
     tables_after_downgrade, _ = _schema_state(database_url)

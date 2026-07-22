@@ -255,8 +255,10 @@ class DetectedQuestion(Base):
     )
 
     id: Mapped[PythonUUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    monitored_chat_id: Mapped[PythonUUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("monitored_chats.id"), nullable=False
+    monitored_chat_id: Mapped[PythonUUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("monitored_chats.id", ondelete="SET NULL"),
+        nullable=True,
     )
     telegram_chat_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
     telegram_message_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
@@ -287,7 +289,7 @@ class DetectedQuestion(Base):
         DateTime(timezone=True), nullable=False, server_default=sql_text("NOW()")
     )
 
-    monitored_chat: Mapped[MonitoredChat] = relationship(back_populates="detected_questions")
+    monitored_chat: Mapped[MonitoredChat | None] = relationship(back_populates="detected_questions")
     chain_messages: Mapped[list[QuestionChainMessage]] = relationship(
         back_populates="question",
         cascade="all, delete-orphan",

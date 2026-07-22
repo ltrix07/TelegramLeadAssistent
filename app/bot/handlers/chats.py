@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from uuid import UUID
 
 from aiogram import F, Router
@@ -15,8 +16,10 @@ from app.bot.keyboards.chats import (
 )
 from app.bot.keyboards.main_menu import build_main_menu_keyboard
 from app.database.repositories import MonitoredChatRepository, NewMonitoredChat
+from app.logging import log_event
 
 router = Router(name="monitored-chats")
+logger = logging.getLogger(__name__)
 
 
 def _format_chat(chat: object) -> str:
@@ -85,20 +88,31 @@ async def manage_chat(
         await callback.answer("Некорректное действие.", show_alert=True)
         return
 
-    async with session_factory.begin() as session:
-        repository = MonitoredChatRepository(session)
-        if action == "pause":
-            changed = await repository.pause(chat_id)
-            result_text = "Чат приостановлен."
-        elif action == "resume":
-            changed = await repository.resume(chat_id)
-            result_text = "Чат ожидает повторной проверки доступа."
-        elif action == "remove":
-            changed = await repository.remove(chat_id)
-            result_text = "Чат удалён из мониторинга."
-        else:
-            await callback.answer("Некорректное действие.", show_alert=True)
-            return
+    try:
+        async with session_factory.begin() as session:
+            repository = MonitoredChatRepository(session)
+            if action == "pause":
+                changed = await repository.pause(chat_id)
+                result_text = "Чат приостановлен."
+            elif action == "resume":
+                changed = await repository.resume(chat_id)
+                result_text = "Чат ожидает повторной проверки доступа."
+            elif action == "remove":
+                changed = await repository.remove(chat_id)
+                result_text = "Чат удалён из мониторинга."
+            else:
+                await callback.answer("Некорректное действие.", show_alert=True)
+                return
+    except Exception:
+        log_event(
+            logger,
+            logging.ERROR,
+            "monitored_chat_action_failed",
+            action=action,
+            chat_id=str(chat_id),
+        )
+        await callback.answer("Не удалось выполнить действие.", show_alert=True)
+        return
 
     await callback.answer(result_text if changed else "Состояние чата уже изменилось.")
     if isinstance(callback.message, Message):

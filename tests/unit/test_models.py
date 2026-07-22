@@ -121,6 +121,8 @@ def test_range_and_state_check_constraints_exist() -> None:
 
 def test_database_and_orm_cascade_definitions_match_spec() -> None:
     assert _foreign_key_ondelete("processing_jobs", "monitored_chat_id") == "CASCADE"
+    assert _foreign_key_ondelete("detected_questions", "monitored_chat_id") == "SET NULL"
+    assert Base.metadata.tables["detected_questions"].c.monitored_chat_id.nullable is True
     assert _foreign_key_ondelete("question_chain_messages", "question_id") == "CASCADE"
     assert _foreign_key_ondelete("bot_notifications", "question_id") == "CASCADE"
     assert _foreign_key_ondelete("reply_versions", "question_id") == "CASCADE"

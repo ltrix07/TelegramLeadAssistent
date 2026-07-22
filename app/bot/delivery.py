@@ -108,11 +108,11 @@ def _build_content(notification: BotNotification) -> NotificationContent:
     chat = question.monitored_chat
     return NotificationContent(
         question_id=question.id,
-        chat_title=chat.title,
+        chat_title=chat.title if chat is not None else "Удалённый чат",
         topic_title=question.topic_title,
         category=question.category,
         confidence=question.confidence,
-        chat_username=chat.username,
+        chat_username=chat.username if chat is not None else None,
         telegram_chat_id=question.telegram_chat_id,
         telegram_message_id=question.telegram_message_id,
         topic_id=question.topic_id,

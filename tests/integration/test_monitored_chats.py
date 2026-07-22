@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+from datetime import UTC, datetime
 
 import pytest
 from alembic.config import Config
@@ -11,7 +12,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from alembic import command
-from app.database.models import MonitoredChat
+from app.database.models import DetectedQuestion, MonitoredChat
 from app.database.repositories import MonitoredChatRepository, NewMonitoredChat
 from app.domain.enums import MonitoredChatStatus, MonitoredChatType
 from app.listener.mtproto import ChatVerificationOutcome, ChatVerificationResult
@@ -141,9 +142,25 @@ async def _exercise_persistence(database_url: str) -> None:
             assert deferred.consecutive_access_failures == 0
 
         async with factory.begin() as session:
+            question = DetectedQuestion(
+                monitored_chat_id=first.id,
+                telegram_chat_id=selected.telegram_chat_id,
+                telegram_message_id=1,
+                telegram_created_at=datetime.now(UTC),
+                original_text="Retained question",
+                category="other",
+            )
+            session.add(question)
+            await session.flush()
+            question_id = question.id
+
+        async with factory.begin() as session:
             assert await MonitoredChatRepository(session).remove(first.id) is True
         async with factory() as session:
             assert await session.get(MonitoredChat, first.id) is None
+            retained_question = await session.get(DetectedQuestion, question_id)
+            assert retained_question is not None
+            assert retained_question.monitored_chat_id is None
     finally:
         await engine.dispose()
 
