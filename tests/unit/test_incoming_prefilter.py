@@ -103,8 +103,55 @@ def test_unambiguous_noise_is_rejected(message: IncomingMessage, reason: FilterR
         "Помогите разобраться с рекламой на Amazon 🙏🚀",
     ],
 )
-def test_ambiguous_text_passes_without_requiring_question_mark(text: str) -> None:
+def test_ambiguous_text_without_hiring_intent_is_rejected(text: str) -> None:
+    result = prefilter_message(_incoming(text))
+
+    assert result.should_classify is False
+    assert result.reason_code is FilterReasonCode.NO_HIRING_INTENT
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "надо сделать сайт по типу призыва нет. и бота с анкетой НЕДОРОГО",
+        "Всем привет, нужен специалист, кто сделает расширение для браузера, за подробностями в лс",
+        "Ищу разработчика для телеграм-бота, бюджет обсудим",
+        "Кто может написать бота для парсинга?",
+        "Потрібен програміст, хто зробить сайт для запису клієнтів",
+        "Looking for a developer to build a Telegram bot, will pay",
+    ],
+)
+def test_hiring_intent_passes_to_classifier(text: str) -> None:
     result = prefilter_message(_incoming(text))
 
     assert result.should_classify is True
     assert result.reason_code is FilterReasonCode.PASS_TO_CLASSIFIER
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "я пытаюсь из номенклатуры вытянуть картинку через rest api",
+        "Ой блэт как это ещё автоматизировать",
+        "Не получается запустить Cloudflare Tunnel через Podkop.",
+        (
+            "Посоветуйте ру хостера без тспу или же тспу с минимальным вмешательством "
+            "как на клаудтрикс"
+        ),
+        "Сделай протокол vless",
+        "Сравни конфиги Xray сперва, и на всякий случай проверь версию ядра",
+        "is there anyway to convert walmart LMD_SAMEDAY tracking numbers using trackerbot?",
+        (
+            "eBay has put my payments on hold, as i was not giving the tracking. "
+            "so now what is my way ahead?"
+        ),
+        "первий месяц спенд $377.93, второй $1,231.15, третий $2,245.09",
+        "На 1420 норм ведёт себя тг ?",
+        "Ищу работу разработчиком, готов на удалёнку",
+    ],
+)
+def test_text_without_hiring_intent_is_rejected(text: str) -> None:
+    result = prefilter_message(_incoming(text))
+
+    assert result.should_classify is False
+    assert result.reason_code is FilterReasonCode.NO_HIRING_INTENT

@@ -1,4 +1,4 @@
-"""Conservative, local filtering for incoming Telegram messages."""
+"""Local filtering that passes only messages with explicit hiring intent."""
 
 from __future__ import annotations
 
@@ -23,6 +23,7 @@ class FilterReasonCode(StrEnum):
     ONLY_URL = "ONLY_URL"
     KNOWN_GREETING = "KNOWN_GREETING"
     KNOWN_THANKS = "KNOWN_THANKS"
+    NO_HIRING_INTENT = "NO_HIRING_INTENT"
     PASS_TO_CLASSIFIER = "PASS_TO_CLASSIFIER"
 
 
@@ -54,8 +55,210 @@ _EDGE_PUNCTUATION = " !.,?:;—–-…"
 _MAX_EMOJI = 4
 
 
+def _compile_stem_terms(*terms: str) -> re.Pattern[str]:
+    """Compile Unicode-boundary terms whose word parts accept inflection suffixes."""
+    patterns: list[str] = []
+    for term in terms:
+        parts = re.split(r"(\w+)", term)
+        pattern = "".join(
+            f"{re.escape(part)}\\w*" if part.isalnum() or part == "_" else re.escape(part)
+            for part in parts
+        )
+        patterns.append(pattern.replace(r"\ ", r"\s+"))
+    return re.compile(rf"\b(?:{'|'.join(patterns)})\b")
+
+
+# Russian
+_DEV_NOUN = _compile_stem_terms(
+    "разработчик",
+    "программист",
+    "кодер",
+    "прогер",
+    "специалист",
+    "исполнитель",
+    "фрилансер",
+    "верстальщик",
+    "девелопер",
+    # Ukrainian
+    "розробник",
+    "програміст",
+    "спеціаліст",
+    "виконавець",
+    "фрілансер",
+    "верстальник",
+    # English
+    "developer",
+    "programmer",
+    "coder",
+    "engineer",
+    "freelancer",
+    "contractor",
+    "dev",
+)
+_NEED_TOKEN = _compile_stem_terms(
+    "нужен",
+    "нужна",
+    "нужно",
+    "нужны",
+    "требуется",
+    "требуются",
+    "ищу",
+    "ищем",
+    "разыскивается",
+    # Ukrainian
+    "потрібен",
+    "потрібна",
+    "потрібно",
+    "потрібні",
+    "шукаю",
+    "шукаємо",
+    "треба",
+    "розшукується",
+    # English
+    "need",
+    "needed",
+    "looking for",
+    "seeking",
+    "searching for",
+    "hiring",
+    "want",
+    "wanted",
+)
+_WHO_TOKEN = _compile_stem_terms(
+    "кто",
+    "хто",
+    # English
+    "who",
+    "anyone",
+    "can someone",
+    "can anyone",
+    "somebody who",
+    "someone who",
+)
+_BUILD_VERB = _compile_stem_terms(
+    "написать",
+    "сделать",
+    "разработать",
+    "запилить",
+    "собрать",
+    "создать",
+    "сверстать",
+    "автоматизировать",
+    "спарсить",
+    "спроектировать",
+    # Ukrainian
+    "написати",
+    "зробити",
+    "розробити",
+    "зібрати",
+    "створити",
+    "автоматизувати",
+    # English
+    "make",
+    "build",
+    "write",
+    "develop",
+    "create",
+    "code",
+    "automate",
+    "parse",
+    "scrape",
+)
+_WEAK_NEED = _compile_stem_terms(
+    "надо",
+    "нужно",
+    "нужен",
+    "требуется",
+    # Ukrainian
+    "треба",
+    "потрібно",
+    # English
+    "need to",
+    "want to",
+    "gotta",
+    "have to",
+)
+_DELIVERABLE = _compile_stem_terms(
+    "сайт",
+    "лендинг",
+    "бот",
+    "чат-бот",
+    "приложени",
+    "интеграц",
+    "парсер",
+    "скрипт",
+    "автоматизац",
+    "расширение",
+    "плагин",
+    "api",
+    "интерфейс",
+    # Ukrainian
+    "додаток",
+    "застосунок",
+    "розширення",
+    # English
+    "website",
+    "site",
+    "landing",
+    "bot",
+    "chatbot",
+    "app",
+    "application",
+    "integration",
+    "parser",
+    "scraper",
+    "script",
+    "extension",
+    "plugin",
+    "automation",
+    "dashboard",
+)
+_ORDER_PAY = _compile_stem_terms(
+    "закажу",
+    "заказать разработку",
+    "оплачу",
+    "оплата",
+    "готов оплатить",
+    "за оплату",
+    "за деньги",
+    "сколько стоит сделать",
+    "сколько будет стоить",
+    # Ukrainian
+    "замовлю",
+    "замовити розробку",
+    "готовий оплатити",
+    "за оплату",
+    "скільки коштує зробити",
+    # English
+    "hire",
+    "for hire",
+    "will pay",
+    "ready to pay",
+    "paid gig",
+    "paid project",
+    "how much to build",
+    "how much would it cost",
+    "quote",
+)
+_EXCLUSION = _compile_stem_terms(
+    "ищу работу",
+    "ищу подработку",
+    "резюме",
+    # Ukrainian
+    "шукаю роботу",
+    # English
+    "looking for a job",
+    "looking for work",
+    "my resume",
+    "cv",
+    "vacancy",
+    "вакансия",
+    "вакансію",
+)
+
+
 def prefilter_message(message: IncomingMessage) -> FilterResult:
-    """Ignore only locally identifiable noise and pass all ambiguous text."""
+    """Reject local noise and text without a multilingual hiring-intent signal."""
     if message.is_own:
         return _reject(FilterReasonCode.OWN_MESSAGE)
     if message.is_service:
@@ -83,7 +286,21 @@ def prefilter_message(message: IncomingMessage) -> FilterResult:
         return _reject(FilterReasonCode.KNOWN_GREETING)
     if normalized in _KNOWN_THANKS:
         return _reject(FilterReasonCode.KNOWN_THANKS)
-    return FilterResult(True, FilterReasonCode.PASS_TO_CLASSIFIER)
+
+    text_casefolded = text.casefold()
+    has_hiring_intent = (
+        (_NEED_TOKEN.search(text_casefolded) and _DEV_NOUN.search(text_casefolded))
+        or (_WHO_TOKEN.search(text_casefolded) and _BUILD_VERB.search(text_casefolded))
+        or (
+            _WEAK_NEED.search(text_casefolded)
+            and _BUILD_VERB.search(text_casefolded)
+            and _DELIVERABLE.search(text_casefolded)
+        )
+        or _ORDER_PAY.search(text_casefolded)
+    )
+    if has_hiring_intent and not _EXCLUSION.search(text_casefolded):
+        return FilterResult(True, FilterReasonCode.PASS_TO_CLASSIFIER)
+    return _reject(FilterReasonCode.NO_HIRING_INTENT)
 
 
 def _reject(reason_code: FilterReasonCode) -> FilterResult:
