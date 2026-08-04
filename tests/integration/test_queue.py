@@ -4,16 +4,17 @@ from __future__ import annotations
 
 import asyncio
 import os
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 import pytest
 from alembic.config import Config
-from sqlalchemy import func, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from alembic import command
-from app.database.models import MonitoredChat, ProcessingJob
+from app.database.models import MonitoredChat, ProcessingJob, RecentMessageFingerprint
 from app.database.queue import JobRepository, NewJob
 from app.database.worker import QueueWorker, recover_stale_jobs
 from app.domain.enums import MonitoredChatStatus, MonitoredChatType
@@ -68,7 +69,8 @@ async def _exercise_queue(database_url: str, monitored_chat_id: UUID) -> None:
     factory = async_sessionmaker(engine, expire_on_commit=False)
     try:
         await _assert_duplicate_enqueue(factory, monitored_chat_id)
-        await _assert_duplicate_ingestion(factory)
+        await _assert_register_fingerprint(factory)
+        await _assert_content_deduplication(factory)
         await _assert_concurrent_claims_skip_locked(factory, monitored_chat_id)
         await _assert_retry_time_and_completion(factory, monitored_chat_id)
         await _assert_stale_recovery(factory, monitored_chat_id)
@@ -92,7 +94,27 @@ async def _assert_duplicate_enqueue(
     assert count == 1
 
 
-async def _assert_duplicate_ingestion(factory: async_sessionmaker[AsyncSession]) -> None:
+async def _assert_register_fingerprint(factory: async_sessionmaker[AsyncSession]) -> None:
+    fingerprint = "a" * 64
+    chat_id = -100123456788
+    async with factory.begin() as session:
+        repository = JobRepository(session)
+        assert await repository.register_fingerprint(chat_id, fingerprint, timedelta(days=14))
+    async with factory.begin() as session:
+        repository = JobRepository(session)
+        assert not await repository.register_fingerprint(chat_id, fingerprint, timedelta(days=14))
+        await session.execute(
+            update(RecentMessageFingerprint)
+            .where(RecentMessageFingerprint.telegram_chat_id == chat_id)
+            .values(last_seen_at=datetime.now(UTC) - timedelta(days=15))
+        )
+    async with factory.begin() as session:
+        assert await JobRepository(session).register_fingerprint(
+            chat_id, fingerprint, timedelta(days=14)
+        )
+
+
+async def _assert_content_deduplication(factory: async_sessionmaker[AsyncSession]) -> None:
     message = IncomingMessage(
         telegram_chat_id=-100123456789,
         telegram_message_id=10,
@@ -105,18 +127,51 @@ async def _assert_duplicate_ingestion(factory: async_sessionmaker[AsyncSession])
         is_service=False,
         has_sticker=False,
     )
-    persist = database_message_persister(factory)
+    persist = database_message_persister(factory, dedup_window=timedelta(days=14))
 
     await persist(message)
-    await persist(message)
+    await persist(replace(message, telegram_message_id=message.telegram_message_id + 1))
+
+    async with factory.begin() as session:
+        await session.execute(
+            update(RecentMessageFingerprint)
+            .where(RecentMessageFingerprint.telegram_chat_id == message.telegram_chat_id)
+            .values(last_seen_at=datetime.now(UTC) - timedelta(days=15))
+        )
+    await persist(replace(message, telegram_message_id=message.telegram_message_id + 2))
 
     async with factory() as session:
         count = await session.scalar(
             select(func.count())
             .select_from(ProcessingJob)
-            .where(ProcessingJob.telegram_message_id == message.telegram_message_id)
+            .where(
+                ProcessingJob.telegram_message_id.in_(
+                    (
+                        message.telegram_message_id,
+                        message.telegram_message_id + 1,
+                        message.telegram_message_id + 2,
+                    )
+                )
+            )
         )
-    assert count == 1
+        fingerprints = await session.scalar(
+            select(func.count()).select_from(RecentMessageFingerprint)
+        )
+    assert count == 2
+    assert fingerprints == 2
+
+    async with factory.begin() as session:
+        await session.execute(
+            delete(ProcessingJob).where(
+                ProcessingJob.telegram_message_id.in_(
+                    (
+                        message.telegram_message_id,
+                        message.telegram_message_id + 1,
+                        message.telegram_message_id + 2,
+                    )
+                )
+            )
+        )
 
 
 async def _assert_concurrent_claims_skip_locked(

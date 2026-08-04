@@ -116,7 +116,8 @@ def test_outbound_disabled_keeps_ingestion_and_builds_no_command_workers(
             handlers.append(handler)
 
     monkeypatch.setattr(
-        "app.listener.__main__.database_message_persister", lambda _factory: object()
+        "app.listener.__main__.database_message_persister",
+        lambda _factory, *, dedup_window: object(),
     )
     client = RegistrationClient()
     session_factory = object()
@@ -127,6 +128,7 @@ def test_outbound_disabled_keeps_ingestion_and_builds_no_command_workers(
         allow_list,  # type: ignore[arg-type]
         session_factory,  # type: ignore[arg-type]
         monitoring_enabled=True,
+        dedup_window_days=14,
     )
     workers = _outbound_workers(
         client,  # type: ignore[arg-type]
@@ -148,4 +150,5 @@ def test_monitoring_disabled_registers_no_ingestion_handler() -> None:
         object(),  # type: ignore[arg-type]
         object(),  # type: ignore[arg-type]
         monitoring_enabled=False,
+        dedup_window_days=14,
     )

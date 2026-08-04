@@ -155,6 +155,12 @@ def test_maintenance_schedule_is_environment_configurable(
     assert settings.stale_lock_timeout_seconds == 90
 
 
+def test_dedup_window_is_environment_configurable(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DEDUP_WINDOW_DAYS", "21")
+
+    assert AppSettings().dedup_window_days == 21
+
+
 def test_feature_flags_have_safe_defaults() -> None:
     flags = AppSettings().feature_flags()
 

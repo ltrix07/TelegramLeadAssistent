@@ -200,6 +200,19 @@ class ProcessingJob(Base):
     monitored_chat: Mapped[MonitoredChat] = relationship(back_populates="processing_jobs")
 
 
+class RecentMessageFingerprint(Base):
+    """Hash and timestamp used to suppress repeated classification requests."""
+
+    __tablename__ = "recent_message_fingerprints"
+    __table_args__ = (Index("idx_recent_fingerprints_last_seen", "last_seen_at"),)
+
+    telegram_chat_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    fingerprint: Mapped[str] = mapped_column(String(64), primary_key=True)
+    last_seen_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=sql_text("NOW()")
+    )
+
+
 class ClassificationRun(Base):
     """Metadata and API usage for one classification stage."""
 

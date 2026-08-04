@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import os
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from time import perf_counter
 from types import SimpleNamespace
 from typing import cast
@@ -45,7 +45,7 @@ def _event(message_id: int) -> TelethonMessageEvent:
         id=message_id,
         peer_id=types.PeerChannel(abs(CHAT_ID)),
         from_id=types.PeerUser(7),
-        message=f"Нужна помощь с настройкой заказа {message_id}",
+        message=f"Нужен разработчик Telegram-бота для заказа {message_id}",
         date=datetime(2026, 7, 12, tzinfo=UTC),
         out=False,
     )
@@ -76,7 +76,10 @@ async def _run_load(database_url: str) -> tuple[float, float, int]:
 
         allow_list = ActiveChatAllowList(load_active_chats)
         await allow_list.refresh()
-        handler = IngestionHandler(allow_list, database_message_persister(factory))
+        handler = IngestionHandler(
+            allow_list,
+            database_message_persister(factory, dedup_window=timedelta(days=14)),
+        )
 
         heartbeat_count = 0
         stop_heartbeat = asyncio.Event()

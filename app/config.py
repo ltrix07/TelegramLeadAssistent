@@ -77,6 +77,7 @@ class AppSettings(BaseSettings):
     translation_required_languages: Annotated[tuple[str, ...], NoDecode] = ("en", "ru")
 
     message_retention_days: int = Field(default=60, gt=0)
+    dedup_window_days: int = Field(default=14, gt=0)
     temporary_message_ttl_hours: int = Field(default=24, gt=0)
     technical_log_retention_days: int = Field(default=30, gt=0)
 

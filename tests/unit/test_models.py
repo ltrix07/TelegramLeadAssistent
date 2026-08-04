@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
-from sqlalchemy import CheckConstraint, Enum, UniqueConstraint
+from typing import cast
 
-from app.database.models import Base, DetectedQuestion, MonitoredChat
+from sqlalchemy import CheckConstraint, Enum, Table, UniqueConstraint
+
+from app.database.models import Base, DetectedQuestion, MonitoredChat, RecentMessageFingerprint
 from app.domain.enums import (
     MonitoredChatStatus,
     MonitoredChatType,
@@ -21,6 +23,7 @@ EXPECTED_TABLES = {
     "classification_runs",
     "detected_questions",
     "monitored_chats",
+    "recent_message_fingerprints",
     "operator_sessions",
     "operational_alerts",
     "outbound_commands",
@@ -59,6 +62,15 @@ def test_duplicate_ingestion_and_idempotency_constraints_exist() -> None:
     assert ("telegram_chat_id", "telegram_message_id") in _unique_column_sets("detected_questions")
     assert Base.metadata.tables["outbound_commands"].c.idempotency_key.unique is True
     assert Base.metadata.tables["operational_alerts"].c.deduplication_key.unique is True
+
+
+def test_content_deduplication_persists_only_a_hash_and_timestamp() -> None:
+    table = cast(Table, RecentMessageFingerprint.__table__)
+
+    assert tuple(table.c.keys()) == ("telegram_chat_id", "fingerprint", "last_seen_at")
+    assert table.c.telegram_chat_id.primary_key is True
+    assert table.c.fingerprint.primary_key is True
+    assert {index.name for index in table.indexes} == {"idx_recent_fingerprints_last_seen"}
 
 
 def test_postgresql_enum_types_store_spec_values() -> None:

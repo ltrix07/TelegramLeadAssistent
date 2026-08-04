@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from typing import cast
 from uuid import UUID
 
-from sqlalchemy import delete, func, select, update
+from sqlalchemy import delete, func, select, text, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -188,3 +188,31 @@ class JobRepository:
         if job is None:
             raise LookupError(f"Queue job not found: {job_id}")
         return job
+
+    async def register_fingerprint(
+        self, telegram_chat_id: int, fingerprint: str, window: timedelta
+    ) -> bool:
+        """Record a fingerprint and report whether it is new or outside its rolling window."""
+        statement = text(
+            """
+            WITH existing AS (
+                SELECT last_seen_at
+                FROM recent_message_fingerprints
+                WHERE telegram_chat_id = :telegram_chat_id AND fingerprint = :fingerprint
+            )
+            INSERT INTO recent_message_fingerprints (
+                telegram_chat_id, fingerprint, last_seen_at
+            )
+            VALUES (:telegram_chat_id, :fingerprint, now())
+            ON CONFLICT (telegram_chat_id, fingerprint)
+            DO UPDATE SET last_seen_at = now()
+            RETURNING (SELECT last_seen_at FROM existing) AS prior
+            """
+        )
+        prior = (
+            await self._session.execute(
+                statement,
+                {"telegram_chat_id": telegram_chat_id, "fingerprint": fingerprint},
+            )
+        ).scalar_one()
+        return prior is None or prior <= datetime.now(UTC) - window

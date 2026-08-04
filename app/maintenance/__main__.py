@@ -27,6 +27,7 @@ async def _run() -> None:
         stale_lock_timeout=timedelta(seconds=settings.stale_lock_timeout_seconds),
         temporary_ttl=timedelta(hours=settings.temporary_message_ttl_hours),
         relevant_retention=timedelta(days=settings.message_retention_days),
+        fingerprint_ttl=timedelta(days=settings.dedup_window_days),
         operator_user_id=settings.operator_telegram_user_id,
         translator_probe=TranslatorHealthProbe(
             settings.translation_base_url, settings.translation_request_timeout_seconds

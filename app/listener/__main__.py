@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import signal
+from datetime import timedelta
 from typing import cast
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -39,11 +40,18 @@ def _register_ingestion_handler(
     session_factory: async_sessionmaker[AsyncSession],
     *,
     monitoring_enabled: bool,
+    dedup_window_days: int,
 ) -> None:
     """Attach message ingestion only when monitoring is enabled."""
     if monitoring_enabled:
         client.add_new_message_handler(
-            IngestionHandler(allow_list, database_message_persister(session_factory))
+            IngestionHandler(
+                allow_list,
+                database_message_persister(
+                    session_factory,
+                    dedup_window=timedelta(days=dedup_window_days),
+                ),
+            )
         )
 
 
@@ -111,6 +119,7 @@ async def _run() -> None:
             allow_list,
             session_factory,
             monitoring_enabled=settings.monitoring_enabled,
+            dedup_window_days=settings.dedup_window_days,
         )
         try:
             await run_listener(

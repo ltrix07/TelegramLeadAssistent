@@ -20,6 +20,7 @@ from app.database.models import (
     OutboundCommand,
     ProcessingJob,
     QuestionChainMessage,
+    RecentMessageFingerprint,
     ReplyVersion,
 )
 from app.database.queue import JobRepository, NewJob
@@ -146,6 +147,16 @@ async def _exercise(database_url: str) -> None:
             await session.flush()
             session.add_all(
                 [
+                    RecentMessageFingerprint(
+                        telegram_chat_id=chat.telegram_chat_id,
+                        fingerprint="a" * 64,
+                        last_seen_at=now - timedelta(days=15),
+                    ),
+                    RecentMessageFingerprint(
+                        telegram_chat_id=chat.telegram_chat_id,
+                        fingerprint="b" * 64,
+                        last_seen_at=now,
+                    ),
                     QuestionChainMessage(
                         question_id=expired_question.id,
                         position=0,
@@ -207,6 +218,7 @@ async def _exercise(database_url: str) -> None:
             stale_lock_timeout=timedelta(minutes=5),
             temporary_ttl=timedelta(hours=24),
             relevant_retention=timedelta(days=60),
+            fingerprint_ttl=timedelta(days=14),
             retention_batch_size=1,
         )
         first = await scheduler.run_once()
@@ -215,11 +227,11 @@ async def _exercise(database_url: str) -> None:
 
         assert first.processing_recovered == [stale_job_id]
         assert first.outbound_recovered == [outbound_id]
-        assert first.retention == RetentionCleanupResult(1, 1, 1)
+        assert first.retention == RetentionCleanupResult(1, 1, 1, 1)
         assert second.processing_recovered == []
         assert second.outbound_recovered == []
-        assert second.retention == RetentionCleanupResult(1, 0, 0)
-        assert third.retention == RetentionCleanupResult(0, 0, 0)
+        assert second.retention == RetentionCleanupResult(1, 0, 0, 0)
+        assert third.retention == RetentionCleanupResult(0, 0, 0, 0)
         async with factory() as session:
             stale_job = await session.get(ProcessingJob, stale_job_id)
             active_job = await session.get(ProcessingJob, active_job_id)
@@ -255,6 +267,10 @@ async def _exercise(database_url: str) -> None:
                 == 0
             )
             assert await session.scalar(select(func.count()).select_from(ClassificationRun)) == 1
+            assert (
+                await session.scalar(select(func.count()).select_from(RecentMessageFingerprint))
+                == 1
+            )
     finally:
         await engine.dispose()
 

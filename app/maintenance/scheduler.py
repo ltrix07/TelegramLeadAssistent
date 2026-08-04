@@ -41,6 +41,7 @@ class MaintenanceScheduler:
         stale_lock_timeout: timedelta,
         temporary_ttl: timedelta,
         relevant_retention: timedelta,
+        fingerprint_ttl: timedelta,
         retention_batch_size: int = RETENTION_BATCH_SIZE,
         operator_user_id: int | None = None,
         translator_probe: TranslatorHealthProbe | None = None,
@@ -54,6 +55,7 @@ class MaintenanceScheduler:
         self._stale_lock_timeout = stale_lock_timeout
         self._temporary_ttl = temporary_ttl
         self._relevant_retention = relevant_retention
+        self._fingerprint_ttl = fingerprint_ttl
         self._retention_batch_size = retention_batch_size
         self._operator_user_id = operator_user_id
         self._translator_probe = translator_probe
@@ -77,6 +79,7 @@ class MaintenanceScheduler:
             retention = await RetentionRepository(session).cleanup_once(
                 temporary_ttl=self._temporary_ttl,
                 relevant_retention=self._relevant_retention,
+                fingerprint_ttl=self._fingerprint_ttl,
                 batch_size=self._retention_batch_size,
             )
             if self._operator_user_id is not None:
