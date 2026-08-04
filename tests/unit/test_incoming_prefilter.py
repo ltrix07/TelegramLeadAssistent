@@ -76,8 +76,6 @@ def test_mapper_uses_only_cached_event_data() -> None:
         (_incoming(None), FilterReasonCode.NO_TEXT),
         (replace(_incoming(None), has_sticker=True), FilterReasonCode.STICKER_WITHOUT_CAPTION),
         (_incoming("👋🙂"), FilterReasonCode.ONLY_EMOJI),
-        (_incoming("🔥🔥 продам аккаунты дёшево 💰💯"), FilterReasonCode.EXCESSIVE_EMOJI),
-        (_incoming("🚀💰🔥✅ жми на ссылку"), FilterReasonCode.EXCESSIVE_EMOJI),
         (_incoming("/start"), FilterReasonCode.BOT_COMMAND),
         (_incoming("https://example.com"), FilterReasonCode.ONLY_URL),
         (_incoming("Привет!"), FilterReasonCode.KNOWN_GREETING),
@@ -119,6 +117,7 @@ def test_ambiguous_text_without_hiring_intent_is_rejected(text: str) -> None:
         "Кто может написать бота для парсинга?",
         "Потрібен програміст, хто зробить сайт для запису клієнтів",
         "Looking for a developer to build a Telegram bot, will pay",
+        "🔥🔥 Нужен разработчик Telegram-бота 🤖 Оплата ✅",
     ],
 )
 def test_hiring_intent_passes_to_classifier(text: str) -> None:
@@ -126,6 +125,20 @@ def test_hiring_intent_passes_to_classifier(text: str) -> None:
 
     assert result.should_classify is True
     assert result.reason_code is FilterReasonCode.PASS_TO_CLASSIFIER
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Нужен Java разработчик в офис на постоянку",
+        "Looking for a mobile developer for our team",
+    ],
+)
+def test_hiring_intent_without_stack_fit_is_rejected(text: str) -> None:
+    result = prefilter_message(_incoming(text))
+
+    assert result.should_classify is False
+    assert result.reason_code is FilterReasonCode.NO_STACK_FIT
 
 
 @pytest.mark.parametrize(

@@ -7,6 +7,7 @@ import unicodedata
 from dataclasses import dataclass
 from enum import StrEnum
 
+from app.listener.events.fingerprint import URL_PATTERN
 from app.listener.events.incoming import IncomingMessage
 
 
@@ -18,12 +19,12 @@ class FilterReasonCode(StrEnum):
     SERVICE_MESSAGE = "SERVICE_MESSAGE"
     STICKER_WITHOUT_CAPTION = "STICKER_WITHOUT_CAPTION"
     ONLY_EMOJI = "ONLY_EMOJI"
-    EXCESSIVE_EMOJI = "EXCESSIVE_EMOJI"
     BOT_COMMAND = "BOT_COMMAND"
     ONLY_URL = "ONLY_URL"
     KNOWN_GREETING = "KNOWN_GREETING"
     KNOWN_THANKS = "KNOWN_THANKS"
     NO_HIRING_INTENT = "NO_HIRING_INTENT"
+    NO_STACK_FIT = "NO_STACK_FIT"
     PASS_TO_CLASSIFIER = "PASS_TO_CLASSIFIER"
 
 
@@ -48,11 +49,7 @@ _KNOWN_GREETINGS = frozenset(
 )
 _KNOWN_THANKS = frozenset({"благодарю", "спасибо", "thank you", "thanks"})
 _BOT_COMMAND = re.compile(r"^/[A-Za-z0-9_]+(?:@[A-Za-z0-9_]+)?$")
-_URL = re.compile(r"https?://[^\s]+", re.IGNORECASE)
 _EDGE_PUNCTUATION = " !.,?:;—–-…"
-# Promotional messages in these communities are emoji-heavy while genuine questions use
-# at most one or two, so treat four or more emoji as unambiguous local noise.
-_MAX_EMOJI = 4
 
 
 def _compile_stem_terms(*terms: str) -> re.Pattern[str]:
@@ -213,6 +210,78 @@ _DELIVERABLE = _compile_stem_terms(
     "automation",
     "dashboard",
 )
+_STACK_TOKEN = _compile_stem_terms(
+    # Russian
+    "бот",
+    "чат-бот",
+    "телеграм-бот",
+    "сайт",
+    "лендинг",
+    "парсер",
+    "парсинг",
+    "скрейпинг",
+    "скрипт",
+    "интеграц",
+    "автоматизац",
+    "api",
+    "вебхук",
+    "расширение",
+    "плагин",
+    "приложени",
+    "crm",
+    "нейросет",
+    "искусственный интеллект",
+    "машинное обучение",
+    "gpt",
+    "chatgpt",
+    "ai",
+    "llm",
+    "дашборд",
+    "выгрузк",
+    "сбор данных",
+    "гугл таблиц",
+    # Ukrainian
+    "додаток",
+    "застосунок",
+    "розширення",
+    "парсер",
+    "парсинг",
+    "інтеграц",
+    "автоматизац",
+    "нейромереж",
+    "штучний інтелект",
+    # English
+    "bot",
+    "chatbot",
+    "website",
+    "site",
+    "landing",
+    "parser",
+    "parsing",
+    "scraper",
+    "scraping",
+    "web scraping",
+    "script",
+    "integration",
+    "automation",
+    "automate",
+    "api",
+    "webhook",
+    "extension",
+    "plugin",
+    "app",
+    "application",
+    "crm",
+    "dashboard",
+    "ai",
+    "llm",
+    "gpt",
+    "chatgpt",
+    "machine learning",
+    "neural",
+    "data pipeline",
+    "etl",
+)
 _ORDER_PAY = _compile_stem_terms(
     "закажу",
     "заказать разработку",
@@ -258,7 +327,7 @@ _EXCLUSION = _compile_stem_terms(
 
 
 def prefilter_message(message: IncomingMessage) -> FilterResult:
-    """Reject local noise and text without a multilingual hiring-intent signal."""
+    """Reject local noise and requests outside the supported hiring scope."""
     if message.is_own:
         return _reject(FilterReasonCode.OWN_MESSAGE)
     if message.is_service:
@@ -278,8 +347,6 @@ def prefilter_message(message: IncomingMessage) -> FilterResult:
         return _reject(FilterReasonCode.BOT_COMMAND)
     if _is_only_urls(text):
         return _reject(FilterReasonCode.ONLY_URL)
-    if _count_emoji(text) >= _MAX_EMOJI:
-        return _reject(FilterReasonCode.EXCESSIVE_EMOJI)
 
     normalized = " ".join(text.casefold().strip(_EDGE_PUNCTUATION).split())
     if normalized in _KNOWN_GREETINGS:
@@ -298,9 +365,14 @@ def prefilter_message(message: IncomingMessage) -> FilterResult:
         )
         or _ORDER_PAY.search(text_casefolded)
     )
-    if has_hiring_intent and not _EXCLUSION.search(text_casefolded):
-        return FilterResult(True, FilterReasonCode.PASS_TO_CLASSIFIER)
-    return _reject(FilterReasonCode.NO_HIRING_INTENT)
+    has_stack_fit = _STACK_TOKEN.search(text_casefolded)
+    if _EXCLUSION.search(text_casefolded):
+        return _reject(FilterReasonCode.NO_HIRING_INTENT)
+    if not has_hiring_intent:
+        return _reject(FilterReasonCode.NO_HIRING_INTENT)
+    if not has_stack_fit:
+        return _reject(FilterReasonCode.NO_STACK_FIT)
+    return FilterResult(True, FilterReasonCode.PASS_TO_CLASSIFIER)
 
 
 def _reject(reason_code: FilterReasonCode) -> FilterResult:
@@ -308,20 +380,11 @@ def _reject(reason_code: FilterReasonCode) -> FilterResult:
 
 
 def _is_only_urls(text: str) -> bool:
-    matches = list(_URL.finditer(text))
+    matches = list(URL_PATTERN.finditer(text))
     if not matches:
         return False
-    remainder = _URL.sub("", text)
+    remainder = URL_PATTERN.sub("", text)
     return not remainder.strip(" \t\r\n,;")
-
-
-def _count_emoji(text: str) -> int:
-    """Count emoji codepoints, approximated by the "Symbol, other" Unicode category.
-
-    Skin-tone modifiers, zero-width joiners, and variation selectors fall outside this
-    category, so a multi-codepoint emoji contributes roughly one to the count.
-    """
-    return sum(1 for character in text if unicodedata.category(character) == "So")
 
 
 def _is_only_emoji(text: str) -> bool:

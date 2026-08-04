@@ -226,7 +226,7 @@ Only decisions not already fixed by `docs/SPEC.md` belong here.
 ### ADR-013 — Emoji-heavy prefilter rule for promotional noise
 
 - Date: 2026-07-18
-- Status: Accepted
+- Status: Superseded by ADR-015
 - Related task: M10 rollout cost control
 - Context: The target seller communities contain frequent promotional/spam messages that carry
   real text (so they pass the existing conservative prefilter) and would reach the OpenAI
@@ -268,3 +268,33 @@ Only decisions not already fixed by `docs/SPEC.md` belong here.
   fixture text is the only repository location for example message content.
 - SPEC impact: Clarifies the evaluation corpus for the existing stage-1 relevance workflow without
   changing classification stages, storage, or delivery behavior.
+
+### ADR-015 — Stack-fit prefilter for hiring posts
+
+- Date: 2026-08-04
+- Status: Accepted
+- Context: Emoji-heavy gig posts can be valid requests and cannot safely be rejected before
+  assessing intent. At the same time, broad hiring language admits jobs outside the supported
+  automation, scraping, data-pipeline, Telegram-bot, API-integration, and AI/LLM service scope.
+- Decision: Remove the emoji-count rejection while retaining the only-emoji noise rule. A message
+  with hiring intent must also contain a multilingual stack-fit term before it reaches the
+  classifier; otherwise it is rejected with `NO_STACK_FIT`. Job-seeker exclusions continue to
+  return `NO_HIRING_INTENT` first.
+- Consequences: Valid emoji-rich leads can be classified, while unrelated hiring posts are
+  discarded locally and do not consume classifier calls. The term list is deliberately broad and
+  overlaps deliverable terms to preserve recall inside the service niche.
+- SPEC impact: Narrows local classifier admission to the established freelance-developer lead
+  lens without changing the downstream two-stage workflow.
+
+### ADR-016 — Content-level classifier deduplication
+
+- Date: 2026-08-04
+- Status: Accepted
+- Context: The existing Telegram update uniqueness constraint cannot prevent reposts with a new
+  Telegram message ID from reaching OpenAI.
+- Decision: After local prefiltering, atomically admit a normalized SHA-256 content fingerprint
+  once per monitored chat and configurable rolling window. The deduplication table contains only
+  the chat ID, fingerprint, and last-seen timestamp; it never stores message text.
+- Consequences: Repeated eligible posts within the window do not create a classification job and
+  increment `duplicate_messages_prevented_total`. A repost after the window is admitted again.
+- SPEC impact: Adds cost control without weakening at-least-once delivery for admitted messages.
