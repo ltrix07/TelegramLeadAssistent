@@ -13,7 +13,7 @@ def test_libretranslate_is_internal_persistent_and_resource_bounded() -> None:
     assert "LT_LOAD_ONLY: en,ru" in service
     assert "libretranslate_models:/home/libretranslate/.local" in service
     assert "http://127.0.0.1:5000/health" in service
-    assert "cpus: 2.0" in service
+    assert "cpus: 1.0" in service
     assert "mem_limit: 2g" in service
     assert "pids_limit: 256" in service
     assert "ports:" not in service
