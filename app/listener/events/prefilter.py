@@ -25,6 +25,7 @@ class FilterReasonCode(StrEnum):
     KNOWN_THANKS = "KNOWN_THANKS"
     NO_HIRING_INTENT = "NO_HIRING_INTENT"
     NO_STACK_FIT = "NO_STACK_FIT"
+    ADVERTISEMENT = "ADVERTISEMENT"
     PASS_TO_CLASSIFIER = "PASS_TO_CLASSIFIER"
 
 
@@ -161,54 +162,44 @@ _BUILD_VERB = _compile_stem_terms(
     "parse",
     "scrape",
 )
-_WEAK_NEED = _compile_stem_terms(
-    "надо",
-    "нужно",
-    "нужен",
-    "требуется",
-    # Ukrainian
-    "треба",
-    "потрібно",
-    # English
-    "need to",
-    "want to",
-    "gotta",
-    "have to",
+_EXPLANATION_MARKER = _compile_stem_terms(
+    "как сделать",
+    "кто знает",
+    "подскажите как",
+    "объяснить",
+    "рассказать",
+    "помогите разобраться",
+    "почему не работает",
+    "кто сталкивался",
+    "буду рад помощи",
 )
-_DELIVERABLE = _compile_stem_terms(
-    "сайт",
-    "лендинг",
-    "бот",
-    "чат-бот",
-    "приложени",
-    "интеграц",
-    "парсер",
-    "скрипт",
-    "автоматизац",
-    "расширение",
-    "плагин",
-    "api",
-    "интерфейс",
-    # Ukrainian
-    "додаток",
-    "застосунок",
-    "розширення",
-    # English
-    "website",
-    "site",
-    "landing",
-    "bot",
-    "chatbot",
-    "app",
-    "application",
-    "integration",
-    "parser",
-    "scraper",
-    "script",
-    "extension",
-    "plugin",
-    "automation",
-    "dashboard",
+_PRICE_MARKER = _compile_stem_terms(
+    "сколько стоит",
+    "сколько будет стоить",
+    "бюджет",
+    "оплата",
+)
+_SERVICE_AD_MARKER = _compile_stem_terms(
+    "для вашего бизнеса",
+    "наша студия",
+    "цена от",
+    "прайс",
+)
+_SERVICE_AD_PITCH = re.compile(r"пишите\s+в\s+лс\W{0,5}сделаем", re.IGNORECASE)
+# A price *offer* shape ("от N р") is not, on its own, distinguishable from a buyer
+# stating their own budget the same way ("оплата от 5000р", "готов платить от
+# 20000 руб"). It only counts as an ad when it co-occurs with a genuine offer-side
+# signal (_SERVICE_OFFER_SIGNAL) — see the 2026-09-08 regression fix.
+_SERVICE_AD_PRICE_OFFER = re.compile(
+    r"\bот\s+\d[\d\s]*(?:000|тыс)?\s*(?:р\.?|руб\w*|₽|грн\w*|тг|₸|\$|usd)(?!\w)",
+    re.IGNORECASE,
+)
+_SERVICE_OFFER_SIGNAL = _compile_stem_terms(
+    "сделаем",
+    "разработаем",
+    "делаем",
+    "под ключ",
+    "наши услуги",
 )
 _STACK_TOKEN = _compile_stem_terms(
     # Russian
@@ -355,14 +346,17 @@ def prefilter_message(message: IncomingMessage) -> FilterResult:
         return _reject(FilterReasonCode.KNOWN_THANKS)
 
     text_casefolded = text.casefold()
+
+    if _is_service_advertisement(text_casefolded):
+        return _reject(FilterReasonCode.ADVERTISEMENT)
+
+    who_wants_executor = _WHO_TOKEN.search(text_casefolded) and _BUILD_VERB.search(text_casefolded)
+    who_wants_explanation = _EXPLANATION_MARKER.search(
+        text_casefolded
+    ) and not _PRICE_MARKER.search(text_casefolded)
     has_hiring_intent = (
         (_NEED_TOKEN.search(text_casefolded) and _DEV_NOUN.search(text_casefolded))
-        or (_WHO_TOKEN.search(text_casefolded) and _BUILD_VERB.search(text_casefolded))
-        or (
-            _WEAK_NEED.search(text_casefolded)
-            and _BUILD_VERB.search(text_casefolded)
-            and _DELIVERABLE.search(text_casefolded)
-        )
+        or (who_wants_executor and not who_wants_explanation)
         or _ORDER_PAY.search(text_casefolded)
     )
     has_stack_fit = _STACK_TOKEN.search(text_casefolded)
@@ -377,6 +371,21 @@ def prefilter_message(message: IncomingMessage) -> FilterResult:
 
 def _reject(reason_code: FilterReasonCode) -> FilterResult:
     return FilterResult(False, reason_code)
+
+
+def _is_service_advertisement(text_casefolded: str) -> bool:
+    """Detect the mirror image of a lead: the author offering dev services.
+
+    A bare price-offer shape ("от N р") never decides this alone — a buyer states
+    their own price the same way. It only counts once it co-occurs with a genuine
+    offer-side signal (наша студия, для вашего бизнеса, под ключ, сделаем, ...).
+    """
+    if _SERVICE_AD_MARKER.search(text_casefolded) or _SERVICE_AD_PITCH.search(text_casefolded):
+        return True
+    return bool(
+        _SERVICE_AD_PRICE_OFFER.search(text_casefolded)
+        and _SERVICE_OFFER_SIGNAL.search(text_casefolded)
+    )
 
 
 def _is_only_urls(text: str) -> bool:
