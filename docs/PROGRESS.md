@@ -4,7 +4,7 @@
 
 - Current milestone: M10
 - Current task: M10-02
-- Last completed task: M10-01
+- Last completed task: M10-01 (hotfix H-01 also completed)
 - Last review status: M9 full gate passed
 - Production outbound replies: disabled
 
@@ -46,6 +46,7 @@ full path to reach the target controlled-reply mode is documented in `docs/GO_LI
 
 | Date | Task/Milestone | Commands | Result |
 |---|---|---|---|
+| 2026-10-01 | H-01 lost leads on deleted target | `ruff format --check .`; `ruff check .`; `mypy app`; `pytest tests/unit -q`; targeted + full `pytest tests/integration` against a local PostgreSQL 17.5 | Passed: 306 unit tests; deleted-target persistence (unit + PostgreSQL), non-retryable failure on attempt 1 for both worker loops, and content-free `processing_job_failed` log/metric covered. `tests/integration/test_queue.py` is not re-runnable on a used DB (pre-existing fingerprint state) and `test_maintenance.py` fails on a DB shared with other tests; both pass on a fresh DB. |
 | 2026-08-04 | Content-level deduplication | scoped `uv run mypy`; `make unit`; `make integration` | Passed: feature type checking, 233 unit tests, and PostgreSQL integration suite. Reposts with a new Telegram message ID are atomically suppressed per chat by hash for the configured window; no text is kept in the deduplication table. |
 | 2026-08-04 | Prefilter stack-fit refinement | `uv run pytest tests/unit/test_incoming_prefilter.py`; `make unit` | Passed: 38 focused prefilter tests and 228 unit tests passed; hiring messages without a stack-fit token are rejected locally, while emoji-rich supported leads proceed to classification. |
 | 2026-07-17 | M10 go-live readiness re-certification | `make unit`; `make evaluate`; `make integration` | Passed: 203 unit tests; classifier evaluation precision/recall/category/context accuracy = 1.000 on 100 fake fixtures; PostgreSQL integration suite exited 0. Code certified green; added `docs/GO_LIVE_RUNBOOK.md` covering shadow → notification-only → controlled-reply rollout, rollback, incidents, backup, final env vars, and 30-day measurement. Remaining M10 gates await a real monitored chat with live traffic. |

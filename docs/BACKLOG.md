@@ -1021,3 +1021,28 @@ Acceptance:
 - another engineer can deploy from clean VPS access plus secrets;
 - production outbound remains disabled until operator explicitly enables it;
 - M10/release gate passes.
+
+## Hotfixes
+
+### [x] H-01 Deliver leads whose target message is unavailable
+
+Dependencies: M5-04.
+
+Scope:
+
+- degrade the reply chain gracefully when the target message was deleted in Telegram: build the
+  target chain row from job data and still create the question and operator notification;
+- make `RelevantQuestionPersistenceError` non-retryable with a stable `error_code`;
+- log every job retry or terminal failure as a content-free structured ERROR event and increment
+  `processing_jobs_failed_total` with an `error_code` label in both worker loops.
+
+Acceptance:
+
+- a chain consisting only of an unavailable target yields one question, one `is_target` chain row
+  with the job text, translation attempted, and one notification;
+- available parents keep their positions and the job-built target row is last;
+- unavailable target without job text raises a non-retryable error;
+- a non-retryable handler error moves the job to `failed` on attempt 1;
+- failure log events contain `job_id`, `error_code`, `attempt_count`, `status` and no message
+  content;
+- fully available chains behave as before.

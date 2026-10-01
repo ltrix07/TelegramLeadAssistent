@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 from datetime import timedelta
@@ -15,6 +16,11 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.database.downstream import DownstreamJobRepository, DownstreamPhase
 from app.database.models import ProcessingJob
 from app.database.queue import JobRepository
+from app.domain.enums import ProcessingJobStatus
+from app.logging import log_event
+from app.metrics import increment
+
+logger = logging.getLogger(__name__)
 
 
 class JobDisposition(StrEnum):
@@ -43,6 +49,25 @@ class RetryPolicy:
         if index >= len(self.delays_seconds):
             return None
         return timedelta(seconds=self.delays_seconds[index])
+
+
+def _record_job_failure(
+    job_id: UUID,
+    error_code: str,
+    attempt_count: int,
+    status: ProcessingJobStatus,
+) -> None:
+    """Emit a content-free log event and counter for a failed job attempt."""
+    increment("processing_jobs_failed_total", error_code=error_code)
+    log_event(
+        logger,
+        logging.ERROR,
+        "processing_job_failed",
+        job_id=str(job_id),
+        error_code=error_code,
+        attempt_count=attempt_count,
+        status=status.value,
+    )
 
 
 class QueueWorker:
@@ -90,11 +115,17 @@ class QueueWorker:
                 )[:100]
                 if delay is None:
                     await repository.fail(job.id, error_code)
+                    _record_job_failure(
+                        job.id, error_code, job.attempt_count, ProcessingJobStatus.FAILED
+                    )
                 else:
                     retry_at = await session.scalar(select(func.now() + delay))
                     if retry_at is None:
                         raise RuntimeError("Database did not return retry time") from error
                     await repository.retry(job.id, error_code, retry_at)
+                    _record_job_failure(
+                        job.id, error_code, job.attempt_count, ProcessingJobStatus.RETRY
+                    )
             else:
                 if disposition is not JobDisposition.RETAIN:
                     await repository.complete(job.id)
@@ -150,11 +181,15 @@ class DownstreamQueueWorker:
                 )[:100]
                 if delay is None:
                     await repository.fail(job.id, error_code)
+                    _record_job_failure(
+                        job.id, error_code, job.attempt_count, ProcessingJobStatus.FAILED
+                    )
                 else:
                     retry_at = await session.scalar(select(func.now() + delay))
                     if retry_at is None:
                         raise RuntimeError("Database did not return retry time") from error
                     await repository.retry(job.id, error_code, retry_at)
+                    _record_job_failure(job.id, error_code, job.attempt_count, job.status)
         return True
 
     async def run_forever(self, poll_interval_seconds: float = 1.0) -> None:

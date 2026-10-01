@@ -298,3 +298,20 @@ Only decisions not already fixed by `docs/SPEC.md` belong here.
 - Consequences: Repeated eligible posts within the window do not create a classification job and
   increment `duplicate_messages_prevented_total`. A repost after the window is admitted again.
 - SPEC impact: Adds cost control without weakening at-least-once delivery for admitted messages.
+
+### ADR-H01 — Deliver leads from job data when the target message is unavailable
+
+- Date: 2026-10-01
+- Status: Accepted
+- Context: When a relevant message was deleted in Telegram before the reply chain loaded, the
+  chain contained only an unavailable target. Persistence raised a bare `ValueError`, which was
+  retried five times and then failed, silently losing 26% of relevant leads in production.
+- Decision: The target chain row is built from the job (`message_text`, sender and timestamp) when
+  the chain target is unavailable, placed after any loaded parents, and translated like any other
+  row. If the job has no text, `RelevantQuestionPersistenceError` is raised. That error is
+  non-retryable (`error_code=RELEVANT_PERSISTENCE_REJECTED`), so deterministic persistence
+  failures go straight to `failed`. Transient errors keep at-least-once retry. Both worker loops
+  emit a content-free `processing_job_failed` ERROR event and `processing_jobs_failed_total`.
+- Consequences: Leads with deleted targets reach the operator; failures are visible in logs and
+  metrics. Alert semantics are unchanged (tracked separately as H-02).
+- SPEC impact: None.

@@ -25,7 +25,13 @@ from app.translation.client import (
 
 
 class RelevantQuestionPersistenceError(RuntimeError):
-    """Reject persistence when the durable classification route is invalid."""
+    """Reject persistence when the durable classification route is invalid.
+
+    These failures are deterministic: retrying the same job cannot succeed.
+    """
+
+    retryable = False
+    error_code = "RELEVANT_PERSISTENCE_REJECTED"
 
 
 class RelevantQuestionPersistenceService:
@@ -85,13 +91,27 @@ class RelevantQuestionPersistenceService:
         if len(target_items) != 1 or target_items[0].telegram_message_id != job.telegram_message_id:
             raise RelevantQuestionPersistenceError("Reply chain does not identify the target job")
 
-        available_items = [item for item in chain.items if not item.is_unavailable]
+        target_item = target_items[0]
+        # A deleted target yields an unavailable placeholder; the job still carries its text.
+        target_degraded = target_item.is_unavailable or target_item.text is None
+        if target_degraded and job.message_text is None:
+            raise RelevantQuestionPersistenceError("Target message text is unavailable")
+
+        available_items = [
+            item for item in chain.items if not item.is_unavailable and not item.is_target
+        ]
+        if not target_degraded:
+            available_items = [item for item in chain.items if not item.is_unavailable]
         translations = [
             await self._translate(item.text) for item in available_items if item.text is not None
         ]
         if len(translations) != len(available_items):
             raise RelevantQuestionPersistenceError("Available chain message is incomplete")
-        target_translation = translations[available_items.index(target_items[0])]
+        if target_degraded:
+            assert job.message_text is not None
+            target_translation = await self._translate(job.message_text)
+        else:
+            target_translation = translations[available_items.index(target_item)]
 
         question = DetectedQuestion(
             monitored_chat_id=job.monitored_chat_id,
@@ -128,6 +148,24 @@ class RelevantQuestionPersistenceService:
                     source_language=translation.source_language,
                     translation_status=translation.status.value,
                     is_target=item.is_target,
+                )
+            )
+
+        if target_degraded:
+            session.add(
+                QuestionChainMessage(
+                    question_id=question.id,
+                    position=len(available_items),
+                    telegram_message_id=job.telegram_message_id,
+                    reply_to_message_id=None,
+                    author_telegram_id=job.sender_telegram_id,
+                    author_display_name=job.sender_display_name,
+                    telegram_created_at=job.telegram_created_at,
+                    original_text=job.message_text,
+                    translated_text=target_translation.translated_text,
+                    source_language=target_translation.source_language,
+                    translation_status=target_translation.status.value,
+                    is_target=True,
                 )
             )
 

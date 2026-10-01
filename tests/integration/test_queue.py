@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import asyncio
+import json
+import logging
 import os
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
+from io import StringIO
 from uuid import UUID, uuid4
 
 import pytest
@@ -14,12 +17,16 @@ from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from alembic import command
+from app.classifier.relevant import RelevantQuestionPersistenceError
+from app.config import ServiceName
+from app.database.downstream import DownstreamPhase
 from app.database.models import MonitoredChat, ProcessingJob, RecentMessageFingerprint
 from app.database.queue import JobRepository, NewJob
-from app.database.worker import QueueWorker, recover_stale_jobs
-from app.domain.enums import MonitoredChatStatus, MonitoredChatType
+from app.database.worker import DownstreamQueueWorker, QueueWorker, recover_stale_jobs
+from app.domain.enums import MonitoredChatStatus, MonitoredChatType, ProcessingJobStatus
 from app.listener.events.incoming import IncomingMessage
 from app.listener.events.ingestion import database_message_persister
+from app.logging import JsonFormatter
 
 pytestmark = pytest.mark.integration
 
@@ -77,6 +84,10 @@ async def _exercise_queue(database_url: str, monitored_chat_id: UUID) -> None:
         await _assert_rollback_preserves_at_least_once(factory, monitored_chat_id)
         await _assert_worker_retry_and_poison_state(factory, monitored_chat_id)
         await _assert_queue_age_metric(factory, monitored_chat_id)
+        await _assert_non_retryable_failure_is_terminal_and_logged(factory, monitored_chat_id)
+        await _assert_downstream_persistence_error_fails_on_first_attempt(
+            factory, monitored_chat_id
+        )
     finally:
         await engine.dispose()
 
@@ -314,6 +325,93 @@ async def _assert_worker_retry_and_poison_state(
         assert failed.locked_by is None
         assert failed.last_error_code == "TimeoutError"
         assert failed.sender_display_name is None
+
+
+class _DeterministicFailure(RuntimeError):
+    retryable = False
+    error_code = "TEST_DETERMINISTIC"
+
+
+async def _assert_non_retryable_failure_is_terminal_and_logged(
+    factory: async_sessionmaker[AsyncSession], monitored_chat_id: UUID
+) -> None:
+    secret_text = "private message body"
+    async with factory.begin() as session:
+        await session.execute(delete(ProcessingJob))
+        job_id = await JobRepository(session).enqueue(
+            replace(_new_job(monitored_chat_id, 60), message_text=secret_text)
+        )
+
+    async def failing_handler(job: ProcessingJob, session: AsyncSession) -> None:
+        del session
+        raise _DeterministicFailure(job.message_text)
+
+    stream = StringIO()
+    handler = logging.StreamHandler(stream)
+    handler.setFormatter(JsonFormatter(ServiceName.CLASSIFICATION_WORKER, frozenset()))
+    # alembic's fileConfig() in the same process disables pre-existing loggers.
+    logging.getLogger("app.database.worker").disabled = False
+    logging.getLogger("app.metrics").disabled = False
+    root = logging.getLogger()
+    previous_level = root.level
+    root.addHandler(handler)
+    root.setLevel(logging.INFO)
+    try:
+        assert await QueueWorker(factory, "deterministic-worker", failing_handler).run_once()
+    finally:
+        root.removeHandler(handler)
+        root.setLevel(previous_level)
+
+    async with factory() as session:
+        failed = await session.get(ProcessingJob, job_id)
+        assert failed is not None
+        assert failed.status.value == "failed"
+        assert failed.attempt_count == 1
+        assert failed.last_error_code == "TEST_DETERMINISTIC"
+
+    output = stream.getvalue()
+    assert secret_text not in output
+    events = [json.loads(line) for line in output.splitlines()]
+    failure = next(event for event in events if event["event"] == "processing_job_failed")
+    assert failure["level"] == "ERROR"
+    assert failure["job_id"] == str(job_id)
+    assert failure["error_code"] == "TEST_DETERMINISTIC"
+    assert failure["attempt_count"] == 1
+    assert failure["status"] == "failed"
+    counter = next(event for event in events if event["event"] == "metric_counter")
+    assert counter["metric"] == "processing_jobs_failed_total"
+    assert counter["error_code"] == "TEST_DETERMINISTIC"
+
+
+async def _assert_downstream_persistence_error_fails_on_first_attempt(
+    factory: async_sessionmaker[AsyncSession], monitored_chat_id: UUID
+) -> None:
+    async with factory.begin() as session:
+        await session.execute(delete(ProcessingJob))
+        job_id = await JobRepository(session).enqueue(_new_job(monitored_chat_id, 61))
+        await session.execute(
+            update(ProcessingJob)
+            .where(ProcessingJob.id == job_id)
+            .values(
+                status=ProcessingJobStatus.AWAITING_RELEVANT_PROCESSING,
+                reply_chain_snapshot={},
+            )
+        )
+
+    async def rejecting_handler(job: ProcessingJob, session: AsyncSession) -> None:
+        del job, session
+        raise RelevantQuestionPersistenceError("Target message text is unavailable")
+
+    worker = DownstreamQueueWorker(
+        factory, "downstream-reject", DownstreamPhase.CLASSIFICATION, rejecting_handler
+    )
+    assert await worker.run_once()
+    async with factory() as session:
+        failed = await session.get(ProcessingJob, job_id)
+        assert failed is not None
+        assert failed.status.value == "failed"
+        assert failed.attempt_count == 1
+        assert failed.last_error_code == "RELEVANT_PERSISTENCE_REJECTED"
 
 
 async def _assert_queue_age_metric(

@@ -291,3 +291,58 @@ async def test_translation_disabled_still_persists_notification() -> None:
             assert all(row.source_language is None for row in chain_rows)
     finally:
         await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_deleted_target_is_still_delivered_from_job_data() -> None:
+    engine = create_async_engine(_database_url())
+    factory = async_sessionmaker(engine, expire_on_commit=False)
+    chat_pk = uuid4()
+    service = RelevantQuestionPersistenceService(operator_telegram_user_id=99)
+    chain = ReplyChain(
+        chat_id=-100123,
+        items=(ReplyChainItem(50, None, None, None, None, None, None, None, True, True),),
+        stop_reason=None,
+    )
+    try:
+        async with engine.begin() as connection:
+            await connection.exec_driver_sql(
+                "TRUNCATE classification_runs, api_usage_daily, monitored_chats CASCADE"
+            )
+        async with factory.begin() as session:
+            session.add(
+                MonitoredChat(
+                    id=chat_pk,
+                    telegram_chat_id=-100123,
+                    title="Test",
+                    chat_type=MonitoredChatType.SUPERGROUP,
+                    status=MonitoredChatStatus.ACTIVE,
+                    added_by_telegram_user_id=1,
+                )
+            )
+        job_id = await _seed_job(factory, chat_pk, 50)
+
+        async with factory.begin() as session:
+            job = await session.get(ProcessingJob, job_id)
+            assert job is not None
+            question_id = await service.persist(job, chain, session)
+
+        async with factory() as session:
+            assert await session.get(ProcessingJob, job_id) is None
+            notification = await session.scalar(
+                select(BotNotification).where(BotNotification.question_id == question_id)
+            )
+            assert notification is not None
+            rows = list(
+                await session.scalars(
+                    select(QuestionChainMessage).where(
+                        QuestionChainMessage.question_id == question_id
+                    )
+                )
+            )
+            assert len(rows) == 1
+            assert rows[0].is_target is True
+            assert rows[0].original_text == "How can I fix it?"
+            assert rows[0].telegram_message_id == 50
+    finally:
+        await engine.dispose()
